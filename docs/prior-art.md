@@ -1,0 +1,12 @@
+# Prior art — Toy Story 2 (USA `SLUS_008.93`, SHA-1 `f90c9cd6b4fc9845adfe34e306b7df393bf9154c`, `docs/info/exe-identity.txt`)
+
+There is no decompilation of this executable; the prior art is Traveller's Tales format tooling. A borrowed address is a lead until measured on our image.
+
+| project | URL | kind | license | target build | build match (addresses checked) | what we may take | notes |
+|---|---|---|---|---|---|---|---|
+| TravellersTalesPSXCollisionViewer | https://github.com/juanmv94/TravellersTalesPSXCollisionViewer | savestate collision/GFX viewer (JS) plus `.RAW` tools | none (all rights reserved) | TS2 retail (`game=ts2`), region not stated; also demo and E3 prototype entries | matched: `ts2` CLUT/texture-page table `0x800CD200` equals our measured `kTexturePages` (`game/render/slot_packets.h`) and has 60 `lui`/`lo` pairs in our image; collision area at savestate offset `0xb54bb0` converts to `0x800C9510`, which has 89 `lui`/`lo` pairs in our image (no semantic check). Both are BSS, so Ghidra `--refs` cannot see them | evidence only | last push 2024-01-23; `RAWdec` embeds and executes x86 decoder bytes and ships `.exe` files: never run |
+| Toy-Story-2-Modding | https://github.com/mouksx/Toy-Story-2-Modding | file-format notes and extracted assets | none | retail data files | not checkable: names no addresses | evidence only (`.NGN` notes; its own README marks the rest as outdated) | last push 2024-07-05; holds extracted game assets, never copy |
+| ToyStory2Recomp | https://github.com/PeriBluGaming/ToyStory2Recomp | psxrecomp static recompilation | none | USA `SLUS-00893` | matched: `game.toml` entry `0x80082D60` equals our header; its text size `0x92000` is our `0x91800` rounded up; 124 addresses recorded in our `docs/` and `game/` are among its 658 JAL-target seeds (e.g. `0x8001A4D4`, `0x8001B8AC`, `0x8001C920`) | evidence only (function-entry census) | Created 2026-07-29, last push 2026-08-07; unnamed addresses. |
+| ToyStory2Resources | https://github.com/cheeseandcereal/ToyStory2Resources | autosplitter, Cheat Engine tables, Project64 cheats | none | PC US/UK and N64 | mismatched build: no PlayStation addresses | nothing | |
+
+Not found (2026-10-13): a decompilation, symbol map, Ghidra/IDA database or native PC port of `SLUS_008.93` (the one recompilation is listed above; `Capridog/SpaceRanger` recompiles the N64 version) on GitHub, GitLab, Codeberg or decomp.dev; a Data Crystal RAM map.
