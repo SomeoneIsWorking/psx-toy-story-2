@@ -67,7 +67,7 @@ if(BUILD_TESTING)
         "product_help_${_help_name}"
         PROPERTIES
           ENVIRONMENT "PSXPORT_TS2_DISC=/disc-discovery-must-not-run.chd"
-          PASS_REGULAR_EXPRESSION "usage:.*\\[PS-X EXE\\]"
+          PASS_REGULAR_EXPRESSION "Toy Story 2 \\(SLUS_008\\.93\\)"
       )
     endforeach()
   endif()

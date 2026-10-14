@@ -123,11 +123,7 @@ inline constexpr uint32_t kSdkGraphicsWindowHi = kVSyncBodyHi;
 static_assert(kSetGeomOffset >= kSdkGraphicsWindowLo && kSetGeomOffset < kSdkGraphicsWindowHi);
 static_assert(kVSyncTrap >= kSdkGraphicsWindowLo && kVSyncTrap < kSdkGraphicsWindowHi);
 
-// This port's disc key, checked before PSXPORT_DISC.
-inline constexpr const char *kDiscEnvVar = "PSXPORT_TS2_DISC";
-
-// Window title and memory-card policy; the card variable is checked before PSXPORT_CARD.
-inline constexpr const char *kWindowTitle = "Toy Story 2 (psxport)";
+// Memory-card policy; the card variable is checked before PSXPORT_CARD.
 inline constexpr const char *kCardEnvVar = "PSXPORT_TS2_CARD";
 inline constexpr const char *kCardDefaultPath = "scratch/saves/toystory2.mcr";
 

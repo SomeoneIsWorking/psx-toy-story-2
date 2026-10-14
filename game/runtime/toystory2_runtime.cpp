@@ -43,10 +43,6 @@ const GuestPacketPoolWindows *ToyStory2Runtime::guestPacketPoolWindows() const {
   return &facts::kPacketPoolWindows;
 }
 
-const char *ToyStory2Runtime::discEnvVar() const {
-  return facts::kDiscEnvVar;
-}
-
 const HostIdentity *ToyStory2Runtime::hostIdentity() const {
   return &kHostIdentity;
 }

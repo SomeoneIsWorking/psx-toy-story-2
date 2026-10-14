@@ -8,10 +8,10 @@ Toy Story 2.
 run.sh -> bootstrap.py -> tools/run.py -> CMake product
                                          |
                                          v
-game/main.cpp -> ts2::TitleSession -> psxport_install_game(ts2::ToyStory2Runtime)
+psxport main -> psx::host::ProductHost(ts2::createCatalog(): psx::host::SingleTitleCatalog) -> psx::host::TitleSession
                                        |
                                        v
-                    psxport frame loop -> FrameDriver::stepFrame (ts2::ToyStory2FrameDriver)
+                    TitleSession::step -> FrameDriver::stepFrame (ts2::ToyStory2FrameDriver)
                                        |
                                        v
         ts2::stepResidentFrame -> ts2::stepOuterLoop -> guest calls through psx::cpu::ResumableGuestCall
@@ -22,18 +22,16 @@ game/main.cpp -> ts2::TitleSession -> psxport_install_game(ts2::ToyStory2Runtime
 Every directory below is one subsystem: its namespace, its classes, and what each owns. A behaviour
 that is not in this table does not belong to this title.
 
-### `game/` — process entry
+### `game/entry/` — the product's catalog
 
-| Namespace | Class | Responsibility |
+| Namespace | Owner | Responsibility |
 |---|---|---|
-| global | `main` | Parse `--help` and the optional executable path, construct one `TitleSession`, return its exit code. Names no subsystem. |
+| `ts2` | `createCatalog` | Toy Story 2 as psxport's `SingleTitleCatalog`: its `TitleIdentity` (the executable SYSTEM.CNF boots: size, header words, SHA-256, disc key and disc path), the provisioning root `scratch/bin`, and the one `ToyStory2Runtime`. `psxport_add_product` builds the framework `main` over it; the framework owns the command line, provisioning, boot order, binds, the run cap and teardown. |
 
 ### `game/boot/` — boot and shutdown
 
 | Namespace | Owner | Responsibility |
 |---|---|---|
-| `ts2` | `TitleSession` | One boot-to-exit run: self-provision the executable from the disc, bring up the peripherals in binding order, register overrides, enter the native boot, and tear everything down by destruction. |
-| `ts2` | `kDefaultExe`, `kDiscExePath` | The executable name SYSTEM.CNF boots and the disc path it is extracted from. |
 | `ts2` | `GuestMainBoot` | Run the measured initialization prefix of guest main `0x8007A9E8` (`initialize`) and then its overlay initialization (`finishOverlayInitialization`), stopping before the non-returning guest outer loop, which `ts2::stepOuterLoop` owns. |
 | `ts2` | `GraphicsSync` | `install` the graphics-init, resident-graphics-init, graphics-shutdown and field-barrier replacements (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`): the same guest state transitions with no guest-owned VSync. |
 | `ts2` | `LevelStartPresentation` | Arm or retire the `0x8007C278` override per level start from the demo flag the guest's own guard reads, and suppress only the demo-forced LOADING card. |
@@ -149,7 +147,7 @@ that is not in this table does not belong to this title.
 
 ### The frame turn
 
-- psxport's native frame loop owns the turn and asks `ts2::ToyStory2Runtime::createFrameDriver` for the driver.
+- psxport's `psx::host::TitleSession::step` owns the turn (one presentation fence per step, counted against `PSXPORT_NATIVE_FRAMES`) and asks `ts2::ToyStory2Runtime::createFrameDriver` for the driver.
 - `ts2::ToyStory2FrameDriver::stepFrame` builds `ts2::CoreFrameBoundary` over the driver's `ts2::FrameCallState` and calls `ts2::stepResidentFrame`.
 - `ts2::stepResidentFrame` runs the measured order through `ResidentFrameBoundary`: `displayFieldQuota`, `beginLogicFrame`, `sampleInput`, `tickDisplayField` × quota, `serviceDeferredDisplay`, `present`, `updateResidentGame` (then `FrameCut::notePassEnded`), `advanceAudio`.
 - `updateResidentGame` is `ts2::stepOuterLoop(OuterLoopState&, OuterLoopBoundary&)`, which performs ONE finite title operation per call and records the next `OuterLoopPhase`.
@@ -188,4 +186,4 @@ that is not in this table does not belong to this title.
 
 ### The debug control channel
 
-- psxport owns the channel (`Game`'s debug server, loopback, port movable by env). The title contributes no route of its own: input, frames and the ledger are read through psxport's existing owners, and `tools/headless_run.py` reads the run-end ledger from the log.
+- psxport owns the channel (`Game`'s debug server, loopback, port movable by env). The title contributes no route of its own: input, frames and the ledger are read through psxport's existing owners, and `tools/headless_run.py` reads the run-end ledger from the log. A client `quit` or a window close ends the run through the framework's run-end report.

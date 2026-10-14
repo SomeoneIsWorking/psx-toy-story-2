@@ -19,7 +19,6 @@ public:
   const GuestPadBufferLayout *guestPadBufferLayout() const override;
   const GuestCdStreamCallbackLayout *guestCdStreamCallbackLayout() const override;
   const GuestPacketPoolWindows *guestPacketPoolWindows() const override;
-  const char *discEnvVar() const override;
   const HostIdentity *hostIdentity() const override;
   RenderCapabilities renderCapabilities() const override;
   bool guestVramIsPicture(const Game &game) const override;
@@ -35,7 +34,8 @@ public:
   }
 
 private:
-  static constexpr HostIdentity kHostIdentity{facts::kWindowTitle, facts::kCardEnvVar, facts::kCardDefaultPath};
+  static constexpr HostIdentity kHostIdentity{.cardEnvVar = facts::kCardEnvVar,
+                                              .cardDefaultPath = facts::kCardDefaultPath};
   InputPhase inputPhase_;
 };
 
