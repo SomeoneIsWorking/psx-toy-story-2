@@ -41,7 +41,7 @@ boundary. Maintained dependency overrides use `PSXPORT_LIGHTREC_DIR` and
 gameplay compatibility.
 
 To look at the game, drive it, or capture frames, use the maintainer tool: `tools/headless_run.py`
-(one bounded headless run, with `--tap` for an exact-frame schedule, `--pad` to replay a recorded
+(one bounded headless run of `--frames` presentation-fence steps, with `--tap` for an exact-frame schedule, `--pad` to replay a recorded
 phase-keyed `replays/*.pad`, `--shot-at`, `--aspect`, `--dump-at`). `--tap` schedules exact-frame
 probes for one live session; what must keep working over time is a recording, because an absolute
 schedule assumes how many pad frames boot and the movies consume. It is not part of the gate.

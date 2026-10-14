@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """One bounded, headless, silent, unpaced Toy Story 2 run, with its ledger read back.
 
-Launches the built product through psxport's agent environment, caps it at N native frames, optionally
-captures frames, and reads the run's log: how it ended, presents completed, the guest-execution ledger.
-It kills only the PID it captured, and only on its own timeout.
+Launches the built product through psxport's agent environment, caps it at N presentation-fence steps
+(`PSXPORT_NATIVE_FRAMES`, counted by the framework's `RunBudget`), optionally captures frames, and reads
+the run's log: how it ended, presents completed, the guest-execution ledger. It kills only the PID it
+captured, and only on its own timeout.
 
     uv run --frozen python tools/headless_run.py --binary build/ts2/bin/toystory2_port --frames 300
     uv run --frozen python tools/headless_run.py --frames 900 \\
@@ -14,8 +15,8 @@ It kills only the PID it captured, and only on its own timeout.
 replay. `--dump-at F,...` writes the 2 MiB guest RAM at those pad frames (PSXPORT_PAD_DUMP_AT); `--shot-at`
 captures presented frames (PSXPORT_PRESENT_SHOT_AT). The product runs in `scratch/headless/work`.
 
-With `--control-port` the loop is uncapped and the driver polls the live ledger; `--stop-frame` SIGINTs the
-captured PID once the presented-frame counter reaches it. The poll never sends input.
+With `--control-port` the driver polls the live ledger while the run goes on; the step cap still ends it,
+through the framework's run-end report. The poll never sends input.
 """
 
 from __future__ import annotations
@@ -50,18 +51,7 @@ SETTINGS = SETTINGS_4X3
 DEFAULT_ICD = "/usr/share/vulkan/icd.d/radeon_icd.x86_64.json"
 
 PRESENT_LINE = re.compile(r"present_shot|\[shot\]|present-shot", re.IGNORECASE)
-EXIT_LINE = re.compile(r"frame driver required|native boot returned|REFUSED|abort|fault", re.IGNORECASE)
-
-
-class StopWatch:
-    """The frame at which a control-channel run ends; asked once per poll."""
-
-    def __init__(self, stop_frame: int) -> None:
-        self.stop_frame = stop_frame
-        self.ended_by_stop = False
-
-    def finished(self, frame: int) -> bool:
-        return self.stop_frame > 0 and frame >= self.stop_frame
+EXIT_LINE = re.compile(r"frame driver required|run complete|REFUSED|abort|fault", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -76,14 +66,13 @@ class RunPlan:
     control_port: int = 0
     taps: tuple[Tap, ...] = ()
     sink: str = "960x720"
-    stop_frame: int = 0
     settings: Path = SETTINGS_4X3
     # A recorded phase-keyed `.pad` to replay instead of a tap schedule (offsets from each screen's entry phase).
     pad: Path | None = None
 
     @property
     def pad_frames(self) -> int:
-        """Length of the pad schedule: the run's frames, or past the last tap if that is later."""
+        """Length of the pad schedule: the run's steps, or past the last tap if that is later."""
         return max([self.frames] + [tap.end for tap in self.taps])
 
 
@@ -136,9 +125,9 @@ def summarize(log_text: str) -> dict[str, list[str]]:
     return summary
 
 
-def poll_ledger(process: subprocess.Popen, port: int, watch: StopWatch) -> tuple[Ledger | None, StopWatch]:
-    """Ask the live run for its guest-execution counters until it exits, ending the run at its stop
-    frame; the last answer is the ledger. Observation only: no input is ever sent from here."""
+def poll_ledger(process: subprocess.Popen, port: int) -> Ledger | None:
+    """Ask the live run for its guest-execution counters until it exits; the last answer is the ledger.
+    Observation only: no input is ever sent from here."""
     sys.path.insert(0, str(FRAMEWORK / "tools"))
     from dbgclient import LiveClient
 
@@ -147,16 +136,11 @@ def poll_ledger(process: subprocess.Popen, port: int, watch: StopWatch) -> tuple
         try:
             client = LiveClient(port, timeout=5.0)
             last = parse_ledger(client.send("guest"))
-            frame = client.frame()
             client.close()
-            if watch.finished(frame):
-                watch.ended_by_stop = True
-                process.send_signal(signal.SIGINT)
-                break
         except (OSError, ValueError, RuntimeError) as error:
             print(f"[poll] {type(error).__name__}: {error}", file=sys.stderr, flush=True)
         time.sleep(0.2)
-    return last, watch
+    return last
 
 
 def prepare_workdir() -> Path:
@@ -198,18 +182,15 @@ def execute(plan: RunPlan, base: dict[str, str]) -> RunResult:
                                stderr=subprocess.STDOUT)
     print(f"[run] captured pid {process.pid}; killing only that pid on timeout", flush=True)
     ledger: Ledger | None = None
-    watch = StopWatch(plan.stop_frame)
     try:
         if plan.control_port:
-            ledger, watch = poll_ledger(process, plan.control_port, watch)
+            ledger = poll_ledger(process, plan.control_port)
         code = process.wait(timeout=plan.timeout)
     except subprocess.TimeoutExpired:
         os.kill(process.pid, signal.SIGKILL)
         process.wait()
         code = -signal.SIGKILL
         print(f"[run] TIMEOUT after {plan.timeout}s; killed pid {process.pid}", flush=True)
-    if watch.ended_by_stop and code in (0, -signal.SIGINT, 128 + signal.SIGINT):
-        code = 0  # the run ended at the requested frame, by the interrupt this driver sent
     text = log.read_text(errors="replace") if log.is_file() else ""
     return RunResult(code, log, text, work, ledger)
 
@@ -247,7 +228,8 @@ def default_disc() -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--binary", type=Path, default=ROOT / "build/verify/bin/toystory2_port")
-    parser.add_argument("--frames", type=int, default=300)
+    parser.add_argument("--frames", type=int, default=300,
+                        help="stop after this many presentation-fence steps (PSXPORT_NATIVE_FRAMES)")
     parser.add_argument("--shot-at", default="")
     parser.add_argument("--debug", default="")
     parser.add_argument("--timeout", type=int, default=600)
@@ -255,7 +237,6 @@ def main() -> int:
     parser.add_argument("--control-port", type=int, default=0, help="loopback port for the live ledger query")
     parser.add_argument("--tap", action="append", default=[], help="PADFRAME:BUTTON[:HOLD], repeatable, exact")
     parser.add_argument("--dump-at", default="", help="pad frames at which to write the 2 MiB guest RAM")
-    parser.add_argument("--stop-frame", type=int, default=0, help="quit once this presented frame is reached")
     parser.add_argument("--sink", default="960x720",
                         help="the headless presentation sink WxH (PSXPORT_PRESENT_SINK)")
     parser.add_argument("--aspect", choices=("4x3", "16x9"), default="4x3",
@@ -268,12 +249,10 @@ def main() -> int:
     disc = args.disc or default_disc()
     shots = tuple(int(s) for s in args.shot_at.split(",") if s)
     taps = tuple(parse_tap(text) for text in args.tap)
-    if args.stop_frame and not args.control_port:
-        parser.error("--stop-frame needs --control-port")
     dump_at = tuple(int(f) for f in args.dump_at.split(",") if f)
     plan = RunPlan(
         args.binary.resolve(), args.frames, shots, dump_at, args.debug, args.timeout, disc, args.control_port, taps,
-        args.sink, args.stop_frame,
+        args.sink,
         (SETTINGS_16X9_FPS60 if args.fps60 else SETTINGS_16X9) if args.aspect == "16x9"
         else (SETTINGS_4X3_FPS60 if args.fps60 else SETTINGS_4X3),
         args.pad.resolve() if args.pad else None,

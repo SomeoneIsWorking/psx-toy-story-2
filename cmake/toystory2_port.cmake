@@ -9,7 +9,6 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/boot/guest_main_boot.cpp
   game/boot/graphics_sync.cpp
   game/boot/level_start_presentation.cpp
-  game/boot/title_session.cpp
   game/cd/file_transfer.cpp
   game/execution/guest_execution.cpp
   game/frame/field_call.cpp
@@ -59,7 +58,12 @@ function(toystory2_configure_target target)
 endfunction()
 
 if(PSXPORT_BUILD_PORT)
-  add_executable(toystory2_port game/main.cpp ${TOYSTORY2_RUNTIME_SOURCES})
+  psxport_add_product(
+    toystory2_port
+    CATALOG ts2::createCatalog
+    HEADER entry/toystory2_catalog.h
+    SOURCES game/entry/toystory2_catalog.cpp ${TOYSTORY2_RUNTIME_SOURCES}
+  )
   toystory2_configure_target(toystory2_port)
   if(TARGET gen_gpu_shaders)
     add_dependencies(toystory2_port gen_gpu_shaders)

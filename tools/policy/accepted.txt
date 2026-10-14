@@ -1,11 +1,7 @@
 # re-harness cpp_policy sites this repository has not yet moved to an owner. The list only shrinks:
 # a site that no longer occurs fails the gate until its line is deleted.
 
-# Hand-written mains still outside the framework main; each goes when its title moves to psxport_add_product.
-game/main.cpp:entry point:main
-
 # Functions in the global namespace.
-game/boot/title_session.cpp:global-namespace function:native_boot_run
 tests/frame_turn_boundary.cpp:global-namespace function:test_a_finished_boot_countdown_at_the_level_transition_ends_the_game
 tests/frame_turn_boundary.cpp:global-namespace function:test_backing_out_of_the_selection_screen_reenters_the_front_end_poll
 tests/frame_turn_boundary.cpp:global-namespace function:test_front_end_poll_spans_fields_without_leaving_its_phase_until_it_returns

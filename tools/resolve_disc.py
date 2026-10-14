@@ -4,7 +4,7 @@
 Resolution order:
 
   1. a CLI argument                          python3 tools/resolve_disc.py /path/to/disc.chd
-  2. $PSXPORT_TS2_DISC                        the per-game env key, also GameConfig::discEnvVar
+  2. $PSXPORT_TS2_DISC                        the per-game env key, the catalog TitleIdentity's discEnvVar
   3. .env                                    PSXPORT_TS2_DISC= (or the generic PSXPORT_DISC=)
   4. a *.chd dropped in the repo root        the zero-configuration path
 
