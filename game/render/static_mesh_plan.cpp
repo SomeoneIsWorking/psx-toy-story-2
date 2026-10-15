@@ -164,8 +164,7 @@ std::optional<std::uint32_t> trial(const EmitMemory &guest, const MeshDrawCall &
   }
   host.zero(StaticMeshDrawer::orderingTable(guest), facts::kOrderingTableBuckets * sizeof(std::uint32_t));
   const EmitMemory over(guest.core(), host);
-  guest.core().gte().bind();
-  const psx::present::GteGuard gte;
+  const psx::present::GteGuard gte(guest.core().gte());
   if (!StaticMeshDrawer::run(over, call)) {
     return std::nullopt;
   }

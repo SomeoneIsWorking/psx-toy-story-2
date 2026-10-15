@@ -215,28 +215,28 @@ void test_render_halfway_equals_a_frame_drawn_with_the_pose_halfway() {
   auto game = residentGame();
   Core &core = game->core();
   writeScene(core);
-  const GteControl before = psx::present::readGteControl();
+  const GteControl before = psx::present::readGteControl(core.gte());
   const GteControl after = movedCamera(before);
   CHECK(draw(core, kPoolBefore));
   const psx::present::FrameState first = collectedState(core, kPoolBefore);
-  psx::present::writeGteControl(after);
+  psx::present::writeGteControl(core.gte(), after);
   writePose(core, {.positionX = 120, .matrixTurn = 0x0200u});
   CHECK(draw(core, kPoolAfter));
   const psx::present::FrameState second = collectedState(core, kPoolAfter);
 
-  psx::present::writeGteControl(psx::present::blendGteControl(before, after, 0.5f));
+  psx::present::writeGteControl(core.gte(), psx::present::blendGteControl(before, after, 0.5f));
   writePose(core,
             {.positionX = psx::present::lerpInt(0, 120, 0.5f),
              .matrixTurn = psx::present::lerpHalves(0x1000u, 0x02001000u, 0.5f) >> 16});
   CHECK(draw(core, kPoolHalf));
   const auto expected = guestPrimitives(core);
-  const GteControl untouched = psx::present::readGteControl();
+  const GteControl untouched = psx::present::readGteControl(core.gte());
 
   const auto render = [&](float t) {
     return renderState(core, ts2::HierarchyDrawer::kEntry, savedState(first), savedState(second), t);
   };
   CHECK(samePrimitives(render(0.5f), expected));
-  CHECK(psx::present::readGteControl() == untouched);
+  CHECK(psx::present::readGteControl(core.gte()) == untouched);
   CHECK(!samePrimitives(render(1.0f), expected));
   CHECK(!samePrimitives(render(0.0f), expected));
 }
@@ -247,5 +247,5 @@ int main() {
   RUN(quads_are_keyed_by_the_callers_object_and_model_quad);
   RUN(render_at_one_reproduces_the_guest_packets_with_memory_scrambled);
   RUN(render_halfway_equals_a_frame_drawn_with_the_pose_halfway);
-  return pt_summary();
+  return psx::test::summary();
 }

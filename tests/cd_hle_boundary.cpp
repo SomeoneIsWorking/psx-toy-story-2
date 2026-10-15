@@ -185,5 +185,5 @@ int main() {
   RUN(dma_callbacks_come_from_the_guest_table);
   RUN(cd_ready_delivery_belongs_to_the_guest_interrupt);
   RUN(file_transfer_refuses_rather_than_transferring);
-  return pt_summary();
+  return psx::test::summary();
 }

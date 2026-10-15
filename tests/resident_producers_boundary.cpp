@@ -490,38 +490,30 @@ constexpr uint32_t kPoolBefore = 0x801E0000u;
 constexpr uint32_t kPoolAfter = 0x801E4000u;
 constexpr uint32_t kPoolHalf = 0x801E8000u;
 
-GteControl currentControl() {
-  return psx::present::readGteControl();
-}
-
-void setControl(const GteControl &control) {
-  psx::present::writeGteControl(control);
-}
-
 // Draws the part under `before` then `after`, and checks that the render halfway equals the guest drawing it
 // under the controls halfway between.
 void halfwayMatchesGuest(uint32_t drawer, GteControl (*move)(const GteControl &)) {
   auto game = residentGame();
   Core &core = game->core();
   prepareScene(core, drawer);
-  const GteControl before = currentControl();
+  const GteControl before = psx::present::readGteControl(core.gte());
   const GteControl after = move(before);
-  setControl(before);
+  psx::present::writeGteControl(core.gte(), before);
   CHECK(drawPart(core, {.drawer = drawer, .pool = kPoolBefore}));
   const psx::present::FrameState first = collectedState(core, kPoolBefore);
-  setControl(after);
+  psx::present::writeGteControl(core.gte(), after);
   CHECK(drawPart(core, {.drawer = drawer, .pool = kPoolAfter}));
   const psx::present::FrameState second = collectedState(core, kPoolAfter);
 
-  setControl(psx::present::blendGteControl(before, after, 0.5f));
+  psx::present::writeGteControl(core.gte(), psx::present::blendGteControl(before, after, 0.5f));
   CHECK(drawPart(core, {.drawer = drawer, .pool = kPoolHalf}));
   const auto expected = guestPrimitives(core);
-  const GteControl untouched = currentControl();
+  const GteControl untouched = psx::present::readGteControl(core.gte());
 
   const Collect sink =
       renderState(core, ts2::ActorProducers::kActorRenderer, partState(first), partState(second), 0.5f);
   CHECK(samePrimitives(sink, expected));
-  CHECK(currentControl() == untouched);
+  CHECK(psx::present::readGteControl(core.gte()) == untouched);
   // Halfway is neither end.
   CHECK(!samePrimitives(
       renderState(core, ts2::ActorProducers::kActorRenderer, partState(first), partState(second), 1.0f), expected));
@@ -785,9 +777,9 @@ void renderHalfwayEqualsGuest(uint32_t drawer) {
     auto game = residentGame();
     Core &core = game->core();
     const uint32_t primitives = prepareMeshScene(core, drawer);
-    const GteControl before = currentControl();
+    const GteControl before = psx::present::readGteControl(core.gte());
     const GteControl after = move(before);
-    setControl(before);
+    psx::present::writeGteControl(core.gte(), before);
     CHECK(drawMesh(core, drawer));
     const psx::present::FrameState first = meshCollected(core, primitives);
     uint32_t consumed = 0;
@@ -795,19 +787,19 @@ void renderHalfwayEqualsGuest(uint32_t drawer) {
       consumed += core.mem_r16(kMeshTable + entry * 2u) != 0u ? 1u : 0u;
     }
     CHECK(consumed >= 6u);
-    setControl(after);
+    psx::present::writeGteControl(core.gte(), after);
     CHECK(drawMesh(core, drawer, {.consumed = consumed}));
     const psx::present::FrameState second = meshCollected(core, primitives);
 
-    setControl(psx::present::blendGteControl(before, after, 0.5f));
+    psx::present::writeGteControl(core.gte(), psx::present::blendGteControl(before, after, 0.5f));
     CHECK(drawMesh(core, drawer, {.consumed = consumed}));
     const auto expected = guestPrimitives(core);
     CHECK(expected.size() >= 6u);
-    const GteControl untouched = currentControl();
+    const GteControl untouched = psx::present::readGteControl(core.gte());
 
     const Collect sink = renderState(core, drawer, meshState(first, drawer), meshState(second, drawer), 0.5f);
     CHECK(samePrimitives(sink, expected));
-    CHECK(currentControl() == untouched);
+    CHECK(psx::present::readGteControl(core.gte()) == untouched);
     CHECK(!samePrimitives(renderState(core, drawer, meshState(first, drawer), meshState(second, drawer), 1.0f),
                           expected));
   }
@@ -969,5 +961,5 @@ int main() {
   RUN(rigid_quad_culled_left_of_the_screen_still_averages_its_depth);
   RUN(rigid_triangle_culled_left_of_the_screen_still_averages_its_depth);
   RUN(frame_cut_follows_the_guests_scene_and_camera_state);
-  return pt_summary();
+  return psx::test::summary();
 }

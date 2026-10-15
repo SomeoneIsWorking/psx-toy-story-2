@@ -11,7 +11,8 @@ void FieldCall::begin(Core &core, const GuestCall &call) {
   owner_ = call.owner;
   fields_ = 0;
   publishCallArguments(core, call);
-  call_.begin(core, call.owner, call.address, call.returnAddress, psx::cpu::kUnboundedCallTurns);
+  call_.begin(
+      core, call.owner, psx::cpu::GuestCallSite{call.address, call.returnAddress}, psx::cpu::kUnboundedCallTurns);
 }
 
 FieldCall::Step FieldCall::advance(Core &core) {

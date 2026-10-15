@@ -31,8 +31,6 @@ public:
   const psx::present::StateProducer *stateProducer(Core &core, std::uint32_t producer) const override;
   bool sealedFrameIsCut(Core &core) const override;
   const GuestWidescreenProjection *guestWidescreenProjection() const override;
-  RenderCapabilities renderCapabilities() const override;
-  bool guestVramIsPicture(const Game &game) const override;
   // The title screen discards Start inside its 30-field lockout, so absolute pad frames would miss it.
   std::uint64_t inputPhase(Core &core) const override {
     return inputPhase_.of(core);

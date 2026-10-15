@@ -15,17 +15,17 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 include(CTest)
 
 # PSXPORT_DIR is the framework source; default external/psxport, linked or cloned by
-# tools/psxport_fetch.py. Override with -DPSXPORT_DIR=/path/to/psxport.
+# psxport's tools/psxport_fetch.py. Override with -DPSXPORT_DIR=/path/to/psxport.
 # Derive every framework path from it; never spell `external/psxport` at a call site.
 set(PSXPORT_DIR "${CMAKE_SOURCE_DIR}/external/psxport" CACHE PATH
     "psxport framework source directory (default: external/psxport)")
 if(NOT EXISTS "${PSXPORT_DIR}/cmake/psxport.cmake")
   message(FATAL_ERROR "PSXPORT_DIR=${PSXPORT_DIR} has no cmake/psxport.cmake — "
-                      "run `uv run --frozen python tools/psxport_fetch.py`, or point PSXPORT_DIR at a psxport checkout.")
+                      "run ./run.sh once to fetch it, or point PSXPORT_DIR at a psxport checkout.")
 endif()
 message(STATUS "psxport framework: ${PSXPORT_DIR}")
 
-# The framework's nested vendors are initialised by tools/psxport_fetch.py.
+# The framework's nested vendors are initialised by psxport's tools/psxport_fetch.py.
 if(NOT EXISTS "${PSXPORT_DIR}/vendor/lucent/CMakeLists.txt")
   message(FATAL_ERROR "psxport's vendor/lucent is not checked out in the shared clone — run "
                       "`git -C ${PSXPORT_DIR} submodule update --init vendor/lucent` there once.")

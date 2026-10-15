@@ -99,5 +99,5 @@ int main() {
   RUN(gpu_timeout_pair_completes_without_guest_vsync);
   RUN(offset_leaf_preserves_retail_state_and_records_projection);
   RUN(screen_leaf_completes_same_core_projection);
-  return pt_summary();
+  return psx::test::summary();
 }

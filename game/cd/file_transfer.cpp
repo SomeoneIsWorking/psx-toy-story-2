@@ -97,12 +97,13 @@ FileTransfer::Outcome FileTransfer::transfer(Core &core, const Request &request)
     return outcome;
   }
 
-  std::uint32_t firstSector = 0;
-  std::uint32_t fileBytes = 0;
-  if (!disc_find_file(&core.game->disc, path.c_str(), &firstSector, &fileBytes)) {
+  const std::optional<psx::cd::DiscFile> file = core.game->disc.findFile(path.c_str());
+  if (!file) {
     outcome.why = "the disc has no such file";
     return outcome;
   }
+  const std::uint32_t firstSector = file->lba;
+  const std::uint32_t fileBytes = file->size;
   if (fileBytes > kGuestRamEnd - request.destination) {
     outcome.why = "the file does not fit in guest RAM at that destination";
     return outcome;
@@ -114,7 +115,7 @@ FileTransfer::Outcome FileTransfer::transfer(Core &core, const Request &request)
   std::array<std::uint8_t, kSectorBytes> sector{};
   const std::uint32_t sectors = (fileBytes + kSectorBytes - 1u) / kSectorBytes;
   for (std::uint32_t index = 0; index < sectors; ++index) {
-    if (!disc_read_sector(&core.game->disc, firstSector + index, sector.data())) {
+    if (!core.game->disc.readSector(firstSector + index, sector.data())) {
       outcome.why = "a sector of the file could not be read";
       return outcome;
     }

@@ -117,7 +117,7 @@ HierarchyDrawRecorder::HierarchyDrawRecorder(Core &core, const HierarchyDrawCall
   header.cursor = cursor_;
   header.arenaBytes = inputs.packetBytes;
   header.ranges = static_cast<std::uint32_t>(inputs.ranges.size());
-  header.control = psx::present::readGteControl();
+  header.control = psx::present::readGteControl(core.gte());
   psx::present::StateWriter writer;
   writer.put(header);
   writer.putAll(std::span<const MemoryRange>(inputs.ranges));
@@ -163,9 +163,8 @@ void HierarchyStateRender::render(const psx::present::StateInterval &states, psx
   }
 
   {
-    core_.gte().bind();
-    const psx::present::GteGuard guard;
-    psx::present::writeGteControl(state.header.control);
+    const psx::present::GteGuard guard(core_.gte());
+    psx::present::writeGteControl(core_.gte(), state.header.control);
     HierarchyDrawer::run(EmitMemory(core_, host), state.header.call);
   }
   psx::present::emitHostOrderingTable(host,

@@ -20,7 +20,7 @@ void publishCallArguments(Core &core, const GuestCall &call) {
 std::uint32_t callGuestToReturn(Core &core, const GuestCall &call) {
   publishCallArguments(core, call);
   psx::cpu::ResumableGuestCall guestCall;
-  guestCall.begin(core, call.owner, call.address, call.returnAddress, kOneFieldCallTurns);
+  guestCall.begin(core, call.owner, psx::cpu::GuestCallSite{call.address, call.returnAddress}, kOneFieldCallTurns);
   const psx::cpu::CallStep step = guestCall.advance();
   if (step.outcome != psx::cpu::CallOutcome::Returned) {
     lucent::error("ts2-execution",

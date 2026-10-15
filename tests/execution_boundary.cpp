@@ -342,5 +342,5 @@ int main() {
   RUN(memory_overlay_publication_authenticates_bytes_and_retires_replaced_identity);
   RUN(shared_slot_authenticates_fmv_and_replaces_memory_without_identity_leak);
   RUN(level_slot_is_coresident_with_the_shared_slot_and_each_load_replaces_only_its_own_identity);
-  return pt_summary();
+  return psx::test::summary();
 }
