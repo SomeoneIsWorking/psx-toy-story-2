@@ -92,7 +92,6 @@ def build_environment(base: dict[str, str], plan: RunPlan, log: Path, pad: Path 
             "PSXPORT_DEBUG": plan.debug,
             "PSXPORT_WATCHDOG": str(plan.timeout),
             "PSXPORT_NATIVE_FRAMES": str(plan.frames),
-            "SDL_VIDEODRIVER": "offscreen",
             "SDL_AUDIODRIVER": "dummy",
             "VK_ICD_FILENAMES": base.get("VK_ICD_FILENAMES", DEFAULT_ICD),
         }

@@ -1,5 +1,6 @@
 #include "render/slot_packets.h"
 
+#include "facts/guest_facts.h"
 #include "render/mesh_culling.h"
 #include "render/mesh_scratch.h"
 
@@ -23,7 +24,7 @@ std::uint32_t setTexturePage(const EmitMemory &memory, std::int32_t word) {
   const auto bits = static_cast<std::uint32_t>(word);
   const std::uint32_t mode = bits & 0x60u;
   const std::uint32_t select = (bits >> 4) & 0x1F0u;
-  const std::uint32_t entry = kTexturePages + select;
+  const std::uint32_t entry = facts::kTexturePages + select;
   const std::uint32_t clutWord = memory.mem_r32(entry);
   const std::uint32_t pageLow = clutWord & 0xFFFFu;
   memory.mem_w32(kClutHigh, clutWord ^ pageLow);
@@ -40,10 +41,9 @@ SlotPair fillNewSlot(const EmitMemory &m,
                      PacketShape shape,
                      std::uint32_t descriptor,
                      const std::array<std::uint32_t, 4> &corners,
-                     std::uint32_t slot,
-                     std::uint32_t packets) {
-  const std::uint32_t words = slot << 2;
-  const SlotPair pair{m.mem_r32(kAltPackets) + words, packets + words};
+                     PacketSlot slot) {
+  const std::uint32_t words = slot.index << 2;
+  const SlotPair pair{m.mem_r32(kAltPackets) + words, slot.packets + words};
   const auto both32 = [&](std::uint32_t offset, std::uint32_t value) {
     m.mem_w32(pair.alt + offset, value);
     m.mem_w32(pair.own + offset, value);

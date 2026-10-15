@@ -3,7 +3,7 @@
 #include "core.h"
 #include "execution/guest_execution.h"
 #include "native_dispatch.h"
-#include "runtime/toystory2_context.h"
+#include "runtime/toystory2_session.h"
 
 #include <cstdlib>
 #include <lucent/log.h>
@@ -54,7 +54,7 @@ bool LevelStartPresentation::firstPresentationInstalled(Core &core) {
 }
 
 void levelStartFirstPresentationEntry(Core *core) {
-  context(*core).levelStartPresentation.run(*core);
+  session(*core).levelStartPresentation.run(*core);
 }
 
 void LevelStartPresentation::run(Core &core) {

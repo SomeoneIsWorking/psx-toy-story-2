@@ -8,9 +8,6 @@
 
 namespace ts2 {
 
-inline constexpr std::uint32_t kBucketTables = 0x800A12F8u; // pointer to the per-table lists of bucket offsets
-inline constexpr std::uint32_t kOtzLimit = 0x800A135Cu;     // deepest OTZ, in words, a primitive may sit at
-
 namespace static_scratch {
 
 inline constexpr std::uint32_t kOrderingTable = kMeshScratch + 0x40u;

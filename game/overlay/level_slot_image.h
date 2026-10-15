@@ -118,7 +118,8 @@ struct LevelSlotImage {
   }};
 
   static OverlaySlot makeSlot() {
-    return OverlaySlot(kLoadAddress, kWindowBytes, {kRetailModules.begin(), kRetailModules.end()});
+    return OverlaySlot({.loadAddress = kLoadAddress, .bytes = kWindowBytes},
+                       {kRetailModules.begin(), kRetailModules.end()});
   }
 };
 

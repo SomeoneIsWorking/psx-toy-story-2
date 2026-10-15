@@ -30,7 +30,6 @@ constexpr std::uint32_t kGuestRamBase = 0x80000000u;
 constexpr std::uint32_t kGuestRamEnd = 0x80200000u;
 constexpr std::uint32_t kSectorBytes = 2048u;
 // Guest paths are bounded ISO9660 names.
-constexpr std::size_t kMaxGuestPath = 128u;
 
 void publishGuestTransferState(Core &core) {
   core.mem_w32(kTransferWordLo, 0);
@@ -44,7 +43,7 @@ void publishCdMode(Core &core) {
 
 void fileTransferOverride(Core *core) {
   FileTransfer transfer;
-  const FileTransfer::Outcome outcome = transfer.transfer(*core, core->r[4], core->r[5]);
+  const FileTransfer::Outcome outcome = transfer.transfer(*core, {.path = core->r[4], .destination = core->r[5]});
   if (!outcome.transferred) {
     lucent::error("ts2-file", "refused 0x{:08X} -> 0x{:08X}: {}", core->r[4], core->r[5], outcome.why);
   }
@@ -82,17 +81,17 @@ void loadFileOverride(Core *core) {
 
 } // namespace
 
-FileTransfer::Outcome FileTransfer::transfer(Core &core, std::uint32_t guestPath, std::uint32_t destination) const {
+FileTransfer::Outcome FileTransfer::transfer(Core &core, const Request &request) const {
   Outcome outcome;
-  if (guestPath < kGuestRamBase || guestPath >= kGuestRamEnd) {
+  if (request.path < kGuestRamBase || request.path >= kGuestRamEnd) {
     outcome.why = "the path pointer is not guest RAM";
     return outcome;
   }
-  if (destination < kGuestRamBase || destination >= kGuestRamEnd) {
+  if (request.destination < kGuestRamBase || request.destination >= kGuestRamEnd) {
     outcome.why = "the destination is not guest RAM";
     return outcome;
   }
-  const std::string path = guestString(core, guestPath, kMaxGuestPath);
+  const std::string path = guestPath(core, request.path);
   if (path.empty()) {
     outcome.why = "the path is empty or longer than a disc name can be";
     return outcome;
@@ -104,7 +103,7 @@ FileTransfer::Outcome FileTransfer::transfer(Core &core, std::uint32_t guestPath
     outcome.why = "the disc has no such file";
     return outcome;
   }
-  if (fileBytes > kGuestRamEnd - destination) {
+  if (fileBytes > kGuestRamEnd - request.destination) {
     outcome.why = "the file does not fit in guest RAM at that destination";
     return outcome;
   }
@@ -122,14 +121,15 @@ FileTransfer::Outcome FileTransfer::transfer(Core &core, std::uint32_t guestPath
     const std::uint32_t offset = index * kSectorBytes;
     const std::uint32_t count = std::min<std::uint32_t>(kSectorBytes, fileBytes - offset);
     for (std::uint32_t byte = 0; byte < count; ++byte) {
-      core.mem_w8_unnotified(destination + offset + byte, sector[byte]);
+      core.mem_w8_unnotified(request.destination + offset + byte, sector[byte]);
     }
   }
   // One notification for the whole file; per-byte would invalidate translated code once per byte.
   if (fileBytes != 0) {
-    psx::cpu::notifyExecutableWrite(core,
-                                    {destination & 0x1FFFFFFFu, (destination & 0x1FFFFFFFu) + fileBytes},
-                                    psx::cpu::ExecutableWriteSource::ModuleLoad);
+    psx::cpu::notifyExecutableWrite(
+        core,
+        {request.destination & 0x1FFFFFFFu, (request.destination & 0x1FFFFFFFu) + fileBytes},
+        psx::cpu::ExecutableWriteSource::ModuleLoad);
   }
   outcome.transferred = true;
   outcome.bytes = fileBytes == 0 ? 1u : fileBytes;

@@ -6,7 +6,7 @@
 #include "facts/guest_facts.h"
 #include "game.h"
 #include "game_runtime.h"
-#include "runtime/toystory2_context.h"
+#include "runtime/toystory2_session.h"
 
 #include <array>
 #include <cstdint>
@@ -62,6 +62,9 @@ struct MovieStep {
   uint32_t a1;
   uint32_t a2;
 };
+// The attract rotation's level selection per playback phase.
+constexpr std::array<uint16_t, 5> kPhaseSelections{0, 3, 7, 10, 13};
+
 constexpr std::array<MovieStep, 4> kIntroMovieSteps{{
     {kMemoryStatus, 2, 0, 0},
     {kMemoryStatus, 0, 0, 0},
@@ -79,8 +82,7 @@ std::optional<uint32_t> queuedScreenFor(int selection) {
   return static_cast<uint32_t>(screen);
 }
 
-uint32_t callGuest(Core &core, uint32_t address, uint32_t a0 = 0, uint32_t a1 = 0, uint32_t a2 = 0, uint32_t a3 = 0) {
-  const std::array arguments{a0, a1, a2, a3};
+uint32_t callGuest(Core &core, uint32_t address, const std::array<uint32_t, 4> &arguments = {}) {
   return callGuestToReturn(core, {address, 0x8007A9E8u, arguments, std::nullopt, "frame driver"});
 }
 
@@ -102,14 +104,13 @@ void CoreFrameBoundary::beginLogicFrame(uint32_t frame) {
   core_.game->timing.logicFrame = frame;
 }
 
+// The pad hands its packet to ToyStory2Runtime::deliverPad, which fills the buffers the decoder reads.
 void CoreFrameBoundary::sampleInput() {
   core_.game->pad.serviceFrame();
-  // The title's pad decoder reads the guest pad packet that retail republishes every VBlank.
-  context(core_).pad.service(core_);
 }
 
 void CoreFrameBoundary::tickDisplayField() {
-  // Timing::frameTick targets another title; this title's VSync counter is facts::kVSyncQueryCounter.
+  // VSync(-1) reads the field count from facts::kVSyncQueryCounter.
   ++core_.game->timing.vblank;
   ++fieldsDelivered_;
   core_.mem_w32(facts::kVSyncQueryCounter, core_.game->timing.vblank);
@@ -139,7 +140,7 @@ void CoreFrameBoundary::serviceDeferredDisplay() {
 
 void CoreFrameBoundary::updateResidentGame() {
   stepOuterLoop(state_.outerLoop_, *this);
-  context(core_).frameCut.notePassEnded(core_);
+  session(core_).frameCut.notePassEnded(core_);
 }
 
 void CoreFrameBoundary::advanceAudio() {
@@ -159,7 +160,7 @@ void CoreFrameBoundary::present(int guestFields) {
 }
 
 void CoreFrameBoundary::initializeFrontEnd() {
-  context(core_).guestMainBoot.finishOverlayInitialization(core_);
+  session(core_).guestMainBoot.finishOverlayInitialization(core_);
   restartColdFrontEnd();
 }
 
@@ -217,12 +218,12 @@ std::optional<int> CoreFrameBoundary::pollFrontEndEvent() {
   if (!state_.fieldCall().pending()) {
     const std::array arguments{2u, 0u};
     state_.fieldCall().begin(core_, {kMemoryDispatcher, 0x8007A9E8u, arguments, std::nullopt, "front-end poll"});
-    context(core_).yieldAtFieldBarrier = true;
+    session(core_).yieldAtFieldBarrier = true;
   }
   if (state_.fieldCall().advance(core_) != FieldCall::Step::returned) {
     return std::nullopt;
   }
-  context(core_).yieldAtFieldBarrier = false;
+  session(core_).yieldAtFieldBarrier = false;
   const auto event = static_cast<int>(core_.mem_r32(kFrontEndEvent));
   lucent::info("ts2-frame", "front-end poll returned event {}", event);
   return event;
@@ -245,7 +246,6 @@ void CoreFrameBoundary::setPlaybackMode(bool enabled) {
 }
 
 void CoreFrameBoundary::selectPlaybackLevel() {
-  static constexpr uint16_t kPhaseSelections[] = {0, 3, 7, 10, 13};
   uint32_t phase = core_.mem_r32(kPlaybackPhase);
   if (phase >= std::size(kPhaseSelections)) {
     lucent::error("ts2-frame", "invalid playback phase {} at 0x{:08X}", phase, kPlaybackPhase);
@@ -284,7 +284,7 @@ SelectionProgress CoreFrameBoundary::stepInteractiveSelection() {
   if (state_.fieldCall().advance(core_) != FieldCall::Step::returned) {
     return SelectionProgress::pending;
   }
-  context(core_).yieldAtFieldBarrier = false;
+  session(core_).yieldAtFieldBarrier = false;
   if (state_.selectionCall_ == SelectionCall::queuedScreen) {
     state_.selectionCall_ = SelectionCall::screenLoop;
     return SelectionProgress::chosen;
@@ -293,9 +293,11 @@ SelectionProgress CoreFrameBoundary::stepInteractiveSelection() {
     core_.mem_w32(kFrontEndEvent, static_cast<uint32_t>(-1));
     return SelectionProgress::backToFrontEnd;
   }
-  if (!queuedScreenFor(core_.mem_r16s(kPlaybackLevel))) {
+  const std::optional<uint32_t> screen = queuedScreenFor(core_.mem_r16s(kPlaybackLevel));
+  if (!screen) {
     return SelectionProgress::chosen;
   }
+  state_.queuedScreen_ = *screen;
   state_.selectionCall_ = SelectionCall::queuedScreen;
   return SelectionProgress::pending;
 }
@@ -335,7 +337,7 @@ bool CoreFrameBoundary::stepMemoryScreen() {
   if (progress != FieldCall::Step::returned) {
     return false;
   }
-  context(core_).yieldAtFieldBarrier = false;
+  session(core_).yieldAtFieldBarrier = false;
   if (state_.selectionCall_ == SelectionCall::memoryCardOverlay && state_.fieldCall().result(core_) != 0) {
     core_.mem_w32(kSelectionActive, 1);
   }
@@ -362,7 +364,7 @@ void CoreFrameBoundary::updateResident() {
 }
 
 PostResidentTransition CoreFrameBoundary::finishResident() {
-  callGuest(core_, kEndResidentDisplay, 0);
+  callGuest(core_, kEndResidentDisplay, {0});
   callGuest(core_, kReleaseResident);
 
   if (core_.mem_r16(kLoopExitReason) != 2) {
@@ -419,15 +421,14 @@ void CoreFrameBoundary::shutdown() {
 
 void CoreFrameBoundary::beginSelectionCall() {
   if (state_.selectionCall_ == SelectionCall::queuedScreen) {
-    const uint32_t screen = *queuedScreenFor(core_.mem_r16s(kPlaybackLevel));
-    const std::array arguments{screen, 0u, 0u, 0u};
+    const std::array arguments{state_.queuedScreen_, 0u, 0u, 0u};
     state_.fieldCall().begin(core_, {kQueueScreen, 0x8007A9E8u, arguments, std::nullopt, "queued selection screen"});
     return;
   }
   core_.mem_w32(kFrontEndEvent, 0);
   core_.mem_w32(kSelectionActive, 1);
   state_.fieldCall().begin(core_, {kInteractiveSelection, 0x8007A9E8u, {}, std::nullopt, "interactive selection"});
-  context(core_).yieldAtFieldBarrier = true;
+  session(core_).yieldAtFieldBarrier = true;
 }
 
 uint32_t CoreFrameBoundary::levelId(uint16_t selection) const {
@@ -454,7 +455,7 @@ PostResidentTransition CoreFrameBoundary::beginSequenceLevel(uint32_t level) {
 
 PostResidentTransition CoreFrameBoundary::finishSequenceScreen(uint32_t level) {
   const uint16_t selection = core_.mem_r16(kPlaybackLevel);
-  callGuest(core_, kSetSequenceMode, 4);
+  callGuest(core_, kSetSequenceMode, {4});
   const uint32_t completionFlag = 0x800C1628u + selection;
   const uint8_t wasComplete = core_.mem_r8(completionFlag);
   core_.mem_w8(completionFlag, 1);
@@ -463,10 +464,10 @@ PostResidentTransition CoreFrameBoundary::finishSequenceScreen(uint32_t level) {
   }
   callGuest(core_, kCommitSequenceState);
   if (wasComplete == 0) {
-    callGuest(core_, kQueueScreen, selection + 1, 0x1E, 1);
+    callGuest(core_, kQueueScreen, {selection + 1u, 0x1E, 1});
   }
   if (level == 0xF) {
-    callGuest(core_, kQueueScreen, 0x12, 0x1F, 1);
+    callGuest(core_, kQueueScreen, {0x12, 0x1F, 1});
     callMemoryDispatcher(0xB, 0xC0, "finale asset load");
     return PostResidentTransition::coldRestart;
   }
@@ -478,18 +479,18 @@ std::optional<int> CoreFrameBoundary::pollLevelTransitionEvent() {
   if (!state_.fieldCall().pending()) {
     const std::array arguments{4u, 0x40u};
     state_.fieldCall().begin(core_, {kMemoryDispatcher, 0x8007A9E8u, arguments, std::nullopt, "level transition"});
-    context(core_).yieldAtFieldBarrier = true;
+    session(core_).yieldAtFieldBarrier = true;
   }
   if (state_.fieldCall().advance(core_) != FieldCall::Step::returned) {
     return std::nullopt;
   }
-  context(core_).yieldAtFieldBarrier = false;
+  session(core_).yieldAtFieldBarrier = false;
   callGuest(core_, kCommitSequenceState);
   const uint16_t selection = core_.mem_r16(kPlaybackLevel);
   const uint32_t authoredLevel = core_.mem_r32(kLevelTable + static_cast<uint32_t>(selection) * 4);
   if (core_.mem_r32(0x800A1540u) != core_.mem_r8(0x800C1617u + authoredLevel) &&
       ((callGuest(core_, kScreenStatus) >> 16) & 0xFF) == 0x32) {
-    callGuest(core_, kQueueScreen, 0x11, 0x10, 0);
+    callGuest(core_, kQueueScreen, {0x11, 0x10, 0});
   }
   return bootCountdownFinished() ? 0 : 1;
 }
@@ -512,7 +513,7 @@ void CoreFrameBoundary::beginOverlayCall(uint32_t address, const char *owner) {
     return;
   }
   state_.fieldCall().begin(core_, {address, 0x8007A9E8u, {}, std::nullopt, owner});
-  context(core_).yieldAtFieldBarrier = true;
+  session(core_).yieldAtFieldBarrier = true;
 }
 
 } // namespace ts2

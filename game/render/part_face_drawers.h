@@ -31,9 +31,6 @@ public:
   inline static constexpr std::uint32_t kPrelit = 0x8001C920u;
   inline static constexpr std::uint32_t kNormalLit = 0x8001DFE4u;
   // 0x8001CD34 (DCPL-lit) stays on the guest: no replay reaches it, so a native port could not be diff-proven.
-  // The packet cursor and ordering table base every drawer reads and the cursor it advances.
-  inline static constexpr std::uint32_t kPacketCursor = 0x800A1608u;
-  inline static constexpr std::uint32_t kOrderingTable = 0x800A10BCu;
 
   static void install(Core &core);
 

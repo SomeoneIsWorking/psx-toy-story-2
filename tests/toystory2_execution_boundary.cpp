@@ -7,8 +7,8 @@
 #include "image_identity.h"
 #include "lightrec_executor.h"
 #include "overlay/overlay_images.h"
-#include "runtime/toystory2_runtime.h"
 #include "testutil.h"
+#include "title_game.h"
 
 #include <algorithm>
 #include <array>
@@ -20,13 +20,13 @@
 #include <string_view>
 #include <vector>
 
+namespace {
+
 // This title owns the call arguments, its measured slice caps and the finite entry points built on
 // psx::cpu::ResumableGuestCall; the resume/refusal rules are psxport's and tested there.
-static void test_title_publishes_call_arguments_and_finishes_through_the_shared_owner() {
-  static ts2::ToyStory2Runtime runtime;
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  Core &core = game->core;
+void test_title_publishes_call_arguments_and_finishes_through_the_shared_owner() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
   constexpr std::uint32_t entry = 0x80150000u;
   constexpr std::uint32_t inner = entry + 0x40u;
   constexpr std::uint32_t returnAddress = 0x80150100u;
@@ -83,31 +83,37 @@ static void test_title_publishes_call_arguments_and_finishes_through_the_shared_
   CHECK_EQ(fieldCall.result(core), 200u);
 }
 
-static void writeGuestPath(Core &core, std::uint32_t address, std::string_view path) {
+void writeGuestPath(Core &core, std::uint32_t address, std::string_view path) {
   for (std::size_t offset = 0; offset < path.size(); ++offset) {
     core.mem_w8(address + static_cast<std::uint32_t>(offset), path[offset]);
   }
   core.mem_w8(address + static_cast<std::uint32_t>(path.size()), 0);
 }
 
-static std::string digestHex(std::span<const std::uint8_t> bytes) {
+std::string digestHex(std::span<const std::uint8_t> bytes) {
   return lucent::content::sha256_hex(lucent::content::sha256(std::as_bytes(bytes)));
 }
 
-static std::vector<std::uint8_t> fixtureBytes(std::size_t size, unsigned multiplier, unsigned offset) {
+// Byte `i` of a fixture is `i * multiplier + offset`.
+struct BytePattern {
+  unsigned multiplier = 0;
+  unsigned offset = 0;
+};
+
+std::vector<std::uint8_t> fixtureBytes(std::size_t size, BytePattern pattern) {
   std::vector<std::uint8_t> bytes(size);
   for (std::size_t index = 0; index < bytes.size(); ++index) {
-    bytes[index] = static_cast<std::uint8_t>(index * multiplier + offset);
+    bytes[index] = static_cast<std::uint8_t>(index * pattern.multiplier + pattern.offset);
   }
   return bytes;
 }
 
 // A slot whose modules carry the digests of the synthetic fixtures instead of the retail ones.
-static ts2::OverlaySlot fixtureSlot(std::uint32_t loadAddress,
-                                    std::uint32_t window,
-                                    std::vector<ts2::OverlayModule> modules,
-                                    const std::vector<std::vector<std::uint8_t>> &contents,
-                                    std::vector<std::string> &digests) {
+ts2::OverlaySlot fixtureSlot(std::uint32_t loadAddress,
+                             std::uint32_t window,
+                             std::vector<ts2::OverlayModule> modules,
+                             const std::vector<std::vector<std::uint8_t>> &contents,
+                             std::vector<std::string> &digests) {
   digests.clear();
   for (const auto &bytes : contents) {
     digests.push_back(digestHex(bytes));
@@ -115,14 +121,12 @@ static ts2::OverlaySlot fixtureSlot(std::uint32_t loadAddress,
   for (std::size_t index = 0; index < modules.size(); ++index) {
     modules[index].retailSha256 = digests[index];
   }
-  return ts2::OverlaySlot(loadAddress, window, std::move(modules));
+  return ts2::OverlaySlot({.loadAddress = loadAddress, .bytes = window}, std::move(modules));
 }
 
-static void test_memory_overlay_publication_authenticates_bytes_and_retires_replaced_identity() {
-  static ts2::ToyStory2Runtime runtime;
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  Core &core = game->core;
+void test_memory_overlay_publication_authenticates_bytes_and_retires_replaced_identity() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
   using Image = ts2::SharedSlotImage;
   constexpr auto memory = Image::Memory;
 
@@ -134,12 +138,12 @@ static void test_memory_overlay_publication_authenticates_bytes_and_retires_repl
   core.mem_w8(guestPath, 'x');
   CHECK(!retail.matchLoad(core, guestPath, Image::kLoadAddress));
 
-  const auto discBytes = fixtureBytes(Image::kMemoryFileBytes, 73u, 9u);
+  const auto discBytes = fixtureBytes(Image::kMemoryFileBytes, {73u, 9u});
   std::vector<std::string> digests;
   auto image = fixtureSlot(Image::kLoadAddress,
                            Image::kFmvFileBytes,
                            Image::retailModules(),
-                           {discBytes, fixtureBytes(Image::kFmvFileBytes, 29u, 17u)},
+                           {discBytes, fixtureBytes(Image::kFmvFileBytes, {29u, 17u})},
                            digests);
   auto retailImage = Image::makeSlot();
   std::string why;
@@ -186,11 +190,9 @@ static void test_memory_overlay_publication_authenticates_bytes_and_retires_repl
   CHECK(!core.imageCatalog().resolve(0x800E10E4u).has_value());
 }
 
-static void test_shared_slot_authenticates_fmv_and_replaces_memory_without_identity_leak() {
-  static ts2::ToyStory2Runtime runtime;
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  Core &core = game->core;
+void test_shared_slot_authenticates_fmv_and_replaces_memory_without_identity_leak() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
   using Image = ts2::SharedSlotImage;
   constexpr auto memory = Image::Memory;
   constexpr auto fmv = Image::Fmv;
@@ -208,8 +210,8 @@ static void test_shared_slot_authenticates_fmv_and_replaces_memory_without_ident
   writeGuestPath(core, guestPath, Image::kMemoryGuestPath);
   CHECK(retail.matchLoad(core, guestPath, Image::kLoadAddress) == memory);
 
-  const auto memoryBytes = fixtureBytes(Image::kMemoryFileBytes, 73u, 9u);
-  const auto fmvBytes = fixtureBytes(Image::kFmvFileBytes, 29u, 17u);
+  const auto memoryBytes = fixtureBytes(Image::kMemoryFileBytes, {73u, 9u});
+  const auto fmvBytes = fixtureBytes(Image::kFmvFileBytes, {29u, 17u});
   std::vector<std::string> digests;
   auto image =
       fixtureSlot(Image::kLoadAddress, Image::kFmvFileBytes, Image::retailModules(), {memoryBytes, fmvBytes}, digests);
@@ -260,11 +262,9 @@ static void test_shared_slot_authenticates_fmv_and_replaces_memory_without_ident
   CHECK_EQ(core.imageCatalog().activeCount(), 1u);
 }
 
-static void test_level_slot_is_coresident_with_the_shared_slot_and_each_load_replaces_only_its_own_identity() {
-  static ts2::ToyStory2Runtime runtime;
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  Core &core = game->core;
+void test_level_slot_is_coresident_with_the_shared_slot_and_each_load_replaces_only_its_own_identity() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
   using Level = ts2::LevelSlotImage;
   using Shared = ts2::SharedSlotImage;
   constexpr std::uint32_t guestPath = 0x80160000u;
@@ -282,9 +282,9 @@ static void test_level_slot_is_coresident_with_the_shared_slot_and_each_load_rep
   writeGuestPath(core, guestPath, "level01\\level1.bin");
   CHECK(retail.matchLoad(core, guestPath, Level::kLoadAddress) == level01Alternate);
 
-  const auto firstBytes = fixtureBytes(Level::kRetailModules[level01].fileBytes, 31u, 5u);
-  const auto alternateBytes = fixtureBytes(Level::kRetailModules[level01Alternate].fileBytes, 37u, 11u);
-  const auto memoryBytes = fixtureBytes(Shared::kMemoryFileBytes, 73u, 9u);
+  const auto firstBytes = fixtureBytes(Level::kRetailModules[level01].fileBytes, {31u, 5u});
+  const auto alternateBytes = fixtureBytes(Level::kRetailModules[level01Alternate].fileBytes, {37u, 11u});
+  const auto memoryBytes = fixtureBytes(Shared::kMemoryFileBytes, {73u, 9u});
   std::vector<std::string> levelDigests;
   std::vector<std::string> sharedDigests;
   std::vector<ts2::OverlayModule> levelModules{Level::kRetailModules[level01], Level::kRetailModules[level01Alternate]};
@@ -334,6 +334,8 @@ static void test_level_slot_is_coresident_with_the_shared_slot_and_each_load_rep
   CHECK(!narrow.publish(core, 0, firstBytes, why));
   CHECK(why.find("does not fit") != std::string::npos);
 }
+
+} // namespace
 
 int main() {
   RUN(title_publishes_call_arguments_and_finishes_through_the_shared_owner);

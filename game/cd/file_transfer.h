@@ -18,8 +18,13 @@ public:
     std::string why;
   };
 
-  // `guestPath` is the guest's normalized spelling: upper case, version suffix stripped by 0x80082508.
-  Outcome transfer(Core &core, std::uint32_t guestPath, std::uint32_t destination) const;
+  struct Request {
+    // The guest's normalized spelling: upper case, version suffix stripped by 0x80082508.
+    std::uint32_t path = 0;
+    std::uint32_t destination = 0;
+  };
+
+  Outcome transfer(Core &core, const Request &request) const;
 
   static void install(Core &core);
 };

@@ -1,7 +1,7 @@
 #include "frame/resident_preparation.h"
 
 #include "core.h"
-#include "runtime/toystory2_context.h"
+#include "runtime/toystory2_session.h"
 
 #include <array>
 
@@ -29,17 +29,17 @@ ResidentPreparationProgress ResidentPreparation::step(Core &core, uint32_t level
     core.mem_w32(kPlaybackMode, static_cast<uint32_t>(playbackMode));
     // Attract routes only: FUN_8007C278's first presentation shows the LOADING card, which the instant CD makes
     // pointless.
-    context(core).levelStartPresentation.arm(core, playbackMode);
+    session(core).levelStartPresentation.arm(core, playbackMode);
     const std::array arguments{level};
     levelStart_->begin(core, {kLevelStart, kLevelStartReturn, arguments, std::nullopt, "resident level start"});
-    context(core).yieldAtFieldBarrier = true;
+    session(core).yieldAtFieldBarrier = true;
   }
   if (levelStart_->pending()) {
     if (levelStart_->advance(core) != FieldCall::Step::returned) {
       // Still inside the routine: a display field or a host slice.
       return ResidentPreparationProgress::pending;
     }
-    context(core).yieldAtFieldBarrier = false;
+    session(core).yieldAtFieldBarrier = false;
     // Nonzero: transition cut short by the boot countdown; the main loop skips the entry state (0x8007B230).
     if (levelStart_->result(core) != 0) {
       return ResidentPreparationProgress::finished;
@@ -49,10 +49,10 @@ ResidentPreparationProgress ResidentPreparation::step(Core &core, uint32_t level
   if (!playLoopEntry_.has_value()) {
     playLoopEntry_.emplace();
     playLoopEntry_->begin(core, {kPlayLoopEntryState, kMainLoopEntry, {}, std::nullopt, "resident play-loop entry"});
-    context(core).yieldAtFieldBarrier = true;
+    session(core).yieldAtFieldBarrier = true;
   }
   const FieldCall::Step progress = playLoopEntry_->advance(core);
-  context(core).yieldAtFieldBarrier = false;
+  session(core).yieldAtFieldBarrier = false;
   // The guest stays parked in its field barrier; the host owns the loop body (0x8007B254/0x8007B850) from here.
   playLoopEntry_->giveUp();
   playLoopEntry_ = std::nullopt;

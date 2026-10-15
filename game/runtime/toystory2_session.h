@@ -6,17 +6,20 @@
 #include "boot/level_start_presentation.h"
 #include "fmv/movie_player.h"
 #include "frame/frame_cut.h"
+#include "game_runtime.h"
 #include "input/pad_owner.h"
 #include "overlay/overlay_images.h"
 #include "render/actor_incarnation.h"
 #include "render/actor_producers.h"
+#include "state_producer.h"
 
 class Core;
 
 namespace ts2 {
 
-// Everything one Core owns; per-Core guest state lives in guest RAM, not here.
-struct ToyStory2Context {
+// Everything one Core owns outside guest RAM, created with its Game.
+class ToyStory2Session final : public psx::game::TitleSessionState {
+public:
   GuestMainBoot guestMainBoot;
   GraphicsSync graphicsSync;
   LevelStartPresentation levelStartPresentation;
@@ -27,11 +30,13 @@ struct ToyStory2Context {
   FrameCut frameCut;
   ActorIncarnations actorIncarnations;
   ActorProducers actorProducers;
+  psx::present::StateProducerTable stateProducers;
   // True while a guest call suspended between display fields (the front-end poll) runs; its field
   // barrier then exits the executor at the field boundary so the host can present.
   bool yieldAtFieldBarrier = false;
 };
 
-ToyStory2Context &context(Core &core);
+// The session of the Game `core` belongs to; aborts when it has none.
+ToyStory2Session &session(Core &core);
 
 } // namespace ts2

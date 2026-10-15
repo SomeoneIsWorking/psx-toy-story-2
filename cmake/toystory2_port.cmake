@@ -25,6 +25,8 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/overlay/overlay_slot.cpp
   game/render/actor_incarnation.cpp
   game/render/actor_producers.cpp
+  game/render/hierarchy_draw_state.cpp
+  game/render/hierarchy_drawer.cpp
   game/render/mesh_culling.cpp
   game/render/memory_range.cpp
   game/render/mesh_subdividers.cpp
@@ -45,7 +47,7 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/render/static_mesh_drawer.cpp
   game/render/static_mesh_plan.cpp
   game/render/slot_mesh_producers.cpp
-  game/runtime/toystory2_context.cpp
+  game/runtime/toystory2_session.cpp
   game/runtime/toystory2_runtime.cpp
   game/widescreen/guest_widescreen.cpp
   game/widescreen/resident_widescreen.cpp
@@ -118,6 +120,14 @@ toystory2_configure_target(toystory2_resident_producers_boundary)
 target_include_directories(toystory2_resident_producers_boundary PRIVATE ${PSXPORT_DIR}/tests)
 
 add_executable(
+  toystory2_hierarchy_producer_boundary
+  tests/hierarchy_producer_boundary.cpp
+  ${TOYSTORY2_RUNTIME_SOURCES}
+)
+toystory2_configure_target(toystory2_hierarchy_producer_boundary)
+target_include_directories(toystory2_hierarchy_producer_boundary PRIVATE ${PSXPORT_DIR}/tests)
+
+add_executable(
   toystory2_execution_boundary
   tests/toystory2_execution_boundary.cpp
   ${TOYSTORY2_RUNTIME_SOURCES}
@@ -130,6 +140,7 @@ foreach(target IN ITEMS
     toystory2_cd_hle_boundary
     toystory2_frame_turn_boundary
     toystory2_resident_producers_boundary
+    toystory2_hierarchy_producer_boundary
     toystory2_execution_boundary)
   set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
 endforeach()

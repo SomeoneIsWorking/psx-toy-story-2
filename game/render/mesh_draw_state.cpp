@@ -59,6 +59,7 @@ bool draw(Core &core, const MeshState &state, const GteControl &control, psx::pr
   host.zero(state.header.tableBase, facts::kOrderingTableBuckets * sizeof(std::uint32_t));
   provideRanges(host, state.ranges, state.bytes);
   {
+    core.gte().bind();
     const psx::present::GteGuard guard;
     psx::present::writeGteControl(control);
     if (!MeshDrawers::run(EmitMemory(core, host), state.header.call)) {
@@ -126,15 +127,15 @@ void MeshDrawRecorder::save(Core &core, const MeshDrawResult &result) const {
 
 // A blend can steer the body onto a path the saved call never took, one with no native body; the saved control
 // registers are the call as the guest drew it, which the trial vetted.
-void MeshStateRender::render(std::span<const std::byte> from,
-                             std::span<const std::byte> to,
-                             float t,
-                             psx::present::PrimitiveSink &sink) const {
-  const MeshState state = MeshState::read(to);
-  if (t < 1.0f && from.data() != to.data()) {
-    const MeshState earlier = MeshState::read(from);
+void MeshStateRender::render(const psx::present::StateInterval &states, psx::present::PrimitiveSink &sink) const {
+  const MeshState state = MeshState::read(states.to);
+  if (states.t < 1.0f && states.from.data() != states.to.data()) {
+    const MeshState earlier = MeshState::read(states.from);
     if (earlier.sameDraw(state) &&
-        draw(core_, state, psx::present::blendGteControl(earlier.header.control, state.header.control, t), sink)) {
+        draw(core_,
+             state,
+             psx::present::blendGteControl(earlier.header.control, state.header.control, states.t),
+             sink)) {
       return;
     }
   }

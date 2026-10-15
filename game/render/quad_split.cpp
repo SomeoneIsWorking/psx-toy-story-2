@@ -15,7 +15,7 @@ namespace {
 using namespace mesh_scratch;
 
 // The nine points of a split quad: its corners in ring order and the middles of its edges and of the diagonal.
-enum Point : unsigned { C0, C1, C2, C3, M01, M12, M23, M30, X };
+enum Point : std::uint8_t { C0, C1, C2, C3, M01, M12, M23, M30, X };
 
 constexpr std::array<PointSlot, 9> kPoints{{
     {110, 64, 0, true},
@@ -119,13 +119,13 @@ void QuadSplit::projectMiddles() {
   };
   c.v1 = middleZ(c.a0, c.s0);
   c.sh(c.t9 + 108, c.v1);
-  gteWrite(1, c.v1);
+  c.gteWrite(1, c.v1);
   c.v1 = middleZ(c.s6, c.a0);
   c.sh(c.t9 + 132, c.v1);
-  gteWrite(3, c.v1);
+  c.gteWrite(3, c.v1);
   c.v1 = middleZ(c.s0, c.s6);
   c.sw(c.t9 + 140, c.v1);
-  gteWrite(5, c.v1);
+  c.gteWrite(5, c.v1);
   c.v1 = middleZ(c.s0, c.s2);
   c.sh(c.t9 + 116, c.v1);
   c.v1 = middleZ(c.s2, c.s6);
@@ -137,37 +137,37 @@ void QuadSplit::projectMiddles() {
   c.s6 = c.lw(c.t3 + 0) & c.s5;
   c.v1 = middleXy(c.a0, c.s0);
   c.sw(c.t9 + 104, c.v1);
-  gteWrite(0, c.v1);
+  c.gteWrite(0, c.v1);
   c.v1 = middleXy(c.s6, c.a0);
   c.sw(c.t9 + 128, c.v1);
-  gteWrite(2, c.v1);
+  c.gteWrite(2, c.v1);
   c.v1 = middleXy(c.s0, c.s6);
   c.sw(c.t9 + 136, c.v1);
-  gteWrite(4, c.v1);
+  c.gteWrite(4, c.v1);
   c.v1 = middleXy(c.s0, c.s2);
   c.gteOp(0x4A280030u);
   c.sw(c.t9 + 112, c.v1);
   c.a0 = middleXy(c.s2, c.s6);
   c.sw(c.t9 + 120, c.a0);
-  c.t0 = gteRead(12);
-  c.t1 = gteRead(13);
-  c.t2 = gteRead(14);
-  c.sw(c.t9 + 44, gteRead(17));
-  c.sw(c.t9 + 56, gteRead(18));
-  c.sw(c.t9 + 60, gteRead(19));
-  gteWrite(0, c.v1);
-  gteWrite(2, c.a0);
-  gteWrite(1, c.lw(c.t9 + 116));
-  gteWrite(3, c.lw(c.t9 + 124));
+  c.t0 = c.gteRead(12);
+  c.t1 = c.gteRead(13);
+  c.t2 = c.gteRead(14);
+  c.sw(c.t9 + 44, c.gteRead(17));
+  c.sw(c.t9 + 56, c.gteRead(18));
+  c.sw(c.t9 + 60, c.gteRead(19));
+  c.gteWrite(0, c.v1);
+  c.gteWrite(2, c.a0);
+  c.gteWrite(1, c.lw(c.t9 + 116));
+  c.gteWrite(3, c.lw(c.t9 + 124));
   c.gteOp(0x4A280030u);
   c.sw(c.t9 + 80, c.t0);
   c.sw(c.t9 + 92, c.t1);
   c.sw(c.t9 + 96, c.t2);
   c.s0 = ((c.t2 & 0xFFFFu) < 512u ? 2u : 0u) | (c.t2 < kYLimit ? 1u : 0u);
-  const std::uint32_t second0 = gteRead(12);
-  const std::uint32_t second1 = gteRead(13);
-  c.sw(c.t9 + 48, gteRead(17));
-  c.sw(c.t9 + 52, gteRead(18));
+  const std::uint32_t second0 = c.gteRead(12);
+  const std::uint32_t second1 = c.gteRead(13);
+  c.sw(c.t9 + 48, c.gteRead(17));
+  c.sw(c.t9 + 52, c.gteRead(18));
   c.sw(c.t9 + 84, second0);
   c.sw(c.t9 + 88, second1);
   if (c.s0 == 3u) {
@@ -175,7 +175,7 @@ void QuadSplit::projectMiddles() {
     return;
   }
   const std::array<std::uint32_t, 8> points{c.t0, c.t1, second0, second1, c.t4, c.t5, c.t6, c.t7};
-  storeScreenMask(c.s0, c.t2, c.t2, points);
+  storeScreenMask({.x = c.t2, .y = c.t2, .shownAxes = c.s0}, points);
 }
 
 // Quarters: each child is culled, subdivided again if it is near enough, or linked whole.
@@ -204,10 +204,10 @@ void QuadSplit::quarter(unsigned i) {
   }
   c.v1 = depth(q.ring[0]) - c.s4;
   if (negative(c.v1)) {
-    gteWrite(19, depth(q.ring[0]));
-    gteWrite(18, depth(q.ring[1]));
-    gteWrite(16, depth(q.ring[2]));
-    gteWrite(17, depth(q.ring[3]));
+    c.gteWrite(19, depth(q.ring[0]));
+    c.gteWrite(18, depth(q.ring[1]));
+    c.gteWrite(16, depth(q.ring[2]));
+    c.gteWrite(17, depth(q.ring[3]));
     if (subdivideChild(i, q.ring)) {
       return;
     }
@@ -223,7 +223,7 @@ void QuadSplit::drawWhole(unsigned i, const Quarter &q) {
   const std::uint32_t sum = c.at + depth(q.ring[3]);
   releaseWhole(i);
   const std::array<unsigned, 4> corners{q.ring[0], q.ring[1], q.ring[3], q.ring[2]};
-  link(packet, ((sum >> 2) & 0xFFFCu) + c.s1, f_.quadCommand, corners);
+  link({.packet = packet, .bucket = ((sum >> 2) & 0xFFFCu) + c.s1}, f_.quadCommand, corners);
 }
 
 // The fan: each child sits on one edge of the quad.

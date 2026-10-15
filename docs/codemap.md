@@ -1,189 +1,64 @@
-# Codemap
+# Codemap — Toy Story 2
 
-Toy Story 2 owns title identity, native behavior and enhancement policy. `external/psxport` owns PSX
-hardware and the dynarec runtime. Dependencies point from the title into psxport; psxport never names
-Toy Story 2.
+Where Toy Story 2's code lives and what each owner owns. Feature chains are in `docs/features.md`; the
+framework side is `external/psxport/docs/codemap.md`.
 
-```text
-run.sh -> bootstrap.py -> tools/run.py -> CMake product
-                                         |
-                                         v
-psxport main -> psx::host::ProductHost(ts2::createCatalog(): psx::host::SingleTitleCatalog) -> psx::host::TitleSession
-                                       |
-                                       v
-                    TitleSession::step -> FrameDriver::stepFrame (ts2::ToyStory2FrameDriver)
-                                       |
-                                       v
-        ts2::stepResidentFrame -> ts2::stepOuterLoop -> guest calls through psx::cpu::ResumableGuestCall
-```
+## Owners
 
-## Directories
-
-Every directory below is one subsystem: its namespace, its classes, and what each owns. A behaviour
-that is not in this table does not belong to this title.
-
-### `game/entry/` — the product's catalog
-
-| Namespace | Owner | Responsibility |
+| owner | path | owns |
 |---|---|---|
-| `ts2` | `createCatalog` | Toy Story 2 as psxport's `SingleTitleCatalog`: its `TitleIdentity` (the executable SYSTEM.CNF boots: size, header words, SHA-256, disc key and disc path), the provisioning root `scratch/bin`, and the one `ToyStory2Runtime`. `psxport_add_product` builds the framework `main` over it; the framework owns the command line, provisioning, boot order, binds, the run cap and teardown. |
+| `createCatalog` | `game/entry/toystory2_catalog.*` | The one-title catalog: `SLUS_008.93` identity, `PSXPORT_TS2_DISC`, provisioning under `scratch/bin`, one `ToyStory2Runtime` |
+| `ToyStory2Runtime` | `game/runtime/toystory2_runtime.*` | The `GameRuntime`: crt0 (`Crt0Boot`), stock libgte/VSync/libgpu/DMA-callback/libcd/pad objects bound in `registerOverrides`, the title overrides, session, frame driver, packet pool, state producers, cut, widescreen policy, input phase, host identity |
+| `ToyStory2Session`, `session` | `game/runtime/toystory2_session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations, the state-producer table |
+| `GuestMainBoot` | `game/boot/guest_main_boot.*` | The measured prefix of guest main `0x8007A9E8`, then overlay initialization, stopping before the outer loop |
+| `GraphicsSync` | `game/boot/graphics_sync.*` | Graphics init, resident init, shutdown and field barrier (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`) with no guest-owned VSync |
+| `LevelStartPresentation` | `game/boot/level_start_presentation.*` | The `0x8007C278` override per level start; suppresses only the demo-forced LOADING card |
+| `createFrameDriver`, `ToyStory2FrameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: one `stepResidentFrame` per step |
+| `stepResidentFrame`, `ResidentFrameBoundary` | `game/frame/resident_frame.*` | The per-frame order: quota, logic frame, input, fields, deferred display, present, update, audio |
+| `CoreFrameBoundary`, `FrameCallState` | `game/frame/frame_boundary.*` | Both boundaries over one Core; the state a turn carries to the next |
+| `stepOuterLoop`, `OuterLoopState` | `game/frame/outer_loop.*` | One finite outer-loop operation per call: front-end poll field, selection, resident update, transition field |
+| `ResidentPreparation` | `game/frame/resident_preparation.*` | Level start `0x8007BEC4` and the play-loop entry as two resumable calls |
+| `FieldCall` | `game/frame/field_call.*` | A guest call driven across display fields over `psx::cpu::ResumableGuestCall` |
+| `FrameCut` | `game/frame/frame_cut.*` | Whether a sealed record is a cut: level or area change, camera placed afresh (`0x80065CD0`), camera source switch (`0x80068E2C`) |
+| `GuestCall`, `callGuestToReturn`, `callFiniteGuestToReturn`, `guestString` | `game/execution/guest_execution.*` | Typed bounded guest calls, their slice caps, and the guest string reader |
+| graphics-buffer facts | `game/facts/guest_facts.h` | Graphics buffers, OT and packet pool offsets, the VSync(-1) counter; evidence in `docs/re-frontier.md` |
+| `PadOwner` | `game/input/pad_owner.*` | The guest's pad decode `0x8003AC58`, pad init and shutdown; the slot buffers `0x800CF8A0`/`0x800CF8C8` |
+| `InputPhase` | `game/input/recording_phase.*` | The replay key from four guest words that hold still per screen |
+| `FileTransfer` | `game/cd/file_transfer.*` | The whole-file read `0x80082608` from the authenticated disc, and its caller's bounded retry |
+| `OverlayImages`, `OverlaySlot` | `game/overlay/overlay_images.*`, `overlay_slot.*` | The LEVEL (`0x800D12C0`) and MEMORY/FMV (`0x800D5D20`) slots: authenticate, publish, retire with invalidation |
+| `LevelSlotImage`, `SharedSlotImage` | `game/overlay/{level,shared}_slot_image.*` | The retail module tables of the two slots |
+| `SoundBankProcessor` | `game/audio/sound_bank.*` | The VAB bank routine `0x8007F108` under the bounded resume loop |
+| `GuestMoviePlayer` | `game/fmv/movie_player.*` | The FMV overlay's player `0x800D7088`: one movie frame per turn, the retail return value |
+| `guestWidescreenPolicy` | `game/widescreen/guest_widescreen.*` | 16:9 from the configured aspect |
+| `ResidentWidescreenCull` | `game/widescreen/resident_widescreen.*` | Widened visibility window `0x80027AF0` and screen rectangle `0x80010000` |
+| `OrderingTables` | `game/render/ordering_tables.*` | Names both OTs so entries carry their bucket |
+| `SlotMeshProducers` | `game/render/slot_mesh_producers.*` | Overrides `0x800100E4` and `0x80017FF8`: native body inside the object's key, or the guest original with `keyFaces` |
+| `MeshDrawRecorder`, `MeshStateRender` | `game/render/mesh_draw_state.*` | Saves a mesh call's inputs; renders it at t over host memory |
+| `MeshDrawers` | `game/render/mesh_drawers.*` | The one entry to the ported mesh bodies: plan, run, ordering table |
+| `StaticMeshDrawer` | `game/render/static_mesh_drawer.*`, `static_mesh_plan.cpp`, `static_mesh_layout.h` | `0x800100E4`, positive-header meshes |
+| `RigidMeshDrawer` | `game/render/rigid_mesh_drawer.*` | `0x80017FF8` |
+| subdividers | `game/render/mesh_subdividers.*`, `quad_split*`, `tri_split*`, `split_*` | `0x80017B6C` and the clip subdividers over `SplitEngine` |
+| slot packets | `game/render/slot_packets.*`, `slot_release.*` | Slot fill, link under the open key, child release |
+| `MeshCpu`, culling | `game/render/mesh_cpu.h`, `mesh_culling.*`, `mesh_scratch.h` | The register-level body over `EmitMemory` and `core.gte()`, scratchpad `0x1F800000` |
+| mesh format | `game/render/mesh_format.*`, `mesh_draw_call.h`, `memory_range.*` | Resident mesh layout and command walk; a call's registers and read ranges |
+| `ActorIncarnations` | `game/render/actor_incarnation.*` | Actor reset `0x8006A9FC` bumps the object generation |
+| `ActorProducers` | `game/render/actor_producers.*` | Overrides `0x8002518C`/`0x80024174` to note the drawn actor; installs `PartStateRender` |
+| `PartFaceDrawers` | `game/render/part_face_drawers.*` | Native part drawers `0x8001C920` (prelit) and `0x8001DFE4` (normal-lit) |
+| `PartDrawRecorder`, `PartStateRender` | `game/render/part_draw_state.*` | Saves a part draw; renders it at t over host memory |
+| `HierarchyDrawer` | `game/render/hierarchy_drawer.*` | Native hierarchical model drawer `0x8002AC40`, keyed by the caller's world object record (s7) |
+| `HierarchyDrawRecorder`, `HierarchyStateRender` | `game/render/hierarchy_draw_state.*` | Saves a hierarchy draw; renders it at t over host memory |
+| launcher | `tools/run.py`, `tools/resolve_disc.py`, `tools/extract_exe.py`, `tools/discdump.py` | Disc resolution and extraction for the zero-argument launch |
+| run control | `tools/headless_run.py`, `tools/execution_ledger.py`, `tools/ts2_route.py` | Hidden-window runs, replays, the run-end ledger |
+| RE evidence | `tools/ram_image.py`, `tools/ghidra_xref.py`, `tools/re_xref.py` | The RAM image Ghidra imports and address xrefs |
+| framework fetch, verify | `tools/psxport_fetch.py`, `tools/verify.py` | The `external/psxport` link and the gate |
+| tests | `tests/` | Runtime bindings (projection, libcd, DMA, pad), the frame turn, execution and overlays, producers and their renders, the level-start card; `title_game.h` builds a `Game` over the shipping runtime, `state_render_check.h` compares a producer's render with the packets the guest linked |
+| replays | `replays/` | Player route through Andy's House, pause, area transition, level exit, intro skip, movie viewer, memory card |
 
-### `game/boot/` — boot and shutdown
+## Where new work goes
 
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `GuestMainBoot` | Run the measured initialization prefix of guest main `0x8007A9E8` (`initialize`) and then its overlay initialization (`finishOverlayInitialization`), stopping before the non-returning guest outer loop, which `ts2::stepOuterLoop` owns. |
-| `ts2` | `GraphicsSync` | `install` the graphics-init, resident-graphics-init, graphics-shutdown and field-barrier replacements (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`): the same guest state transitions with no guest-owned VSync. |
-| `ts2` | `LevelStartPresentation` | Arm or retire the `0x8007C278` override per level start from the demo flag the guest's own guard reads, and suppress only the demo-forced LOADING card. |
-| `ts2` | `LevelStartPresentation::demoGuardForcesLoadingCard`, `levelStartPresentationAddress`, `levelStartFirstPresentationEntry` | The demo-guard decision, its guest address, and the override entry point. |
-
-### `game/frame/` — the frame turn
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `createFrameDriver` / `ToyStory2FrameDriver` | The `FrameDriver` the runtime installs; runs `stepResidentFrame` per frame over the frame state below. |
-| `ts2` | `FrameCallState` | What a frame turn must carry from one step to the next: the outer-loop phase, the resident preparation, the one resumable field call (`fieldCall()`, bound to the Core on first use), the intro-movie step and the running overlay call. |
-| `ts2` | `CoreFrameBoundary` | The shipping implementation of both boundaries over one `Core`: every guest RAM address the front end, the overlays and the resident leg use, and every call it makes through `ts2::ResumableGuestCall`. |
-| `ts2` | `SelectionCall` | Which guest call the one resumable field call is currently running. |
-| `ts2` | `ResidentFrameBoundary` | The finite operations at the resident main-loop boundary, in order: quota, logic frame, input, display fields, deferred display, present, update, audio. The deferred display draws the OT the previous update built, so the record is sealed before this update writes the next one. |
-| `ts2` | `FrameCut` | Whether the record an update built is a cut: another level (`0x800A16A8`) or area object table (`0x800A1274`), the camera placed afresh (`0x80065CD0`), or the camera update (`0x80068E2C`) switching source with no blend pending (`0x800A1498 < 1`). `install` observes both camera routines; `notePassEnded` runs after each update; `ToyStory2Runtime::sealedFrameIsCut` reads `isCut`. |
-| `ts2` | `stepResidentFrame` | The measured per-frame sequencing function. |
-| `ts2` | `OuterLoopState`, `OuterLoopPhase`, `PostResidentTransition`, `SelectionProgress`, `ResidentPreparationProgress` | Which leg of the guest's main loop the host is presenting, and how each step ended. |
-| `ts2` | `OuterLoopBoundary` | The guest operations `stepOuterLoop` needs, one phase at a time. |
-| `ts2` | `stepOuterLoop` | One finite title operation per call: a front-end poll field, a selection iteration, a resident update, a post-level transition field. |
-| `ts2` | `ResidentPreparation` | Run the guest's own level start `0x8007BEC4` and its play-loop entry block as two resumable calls, so every word of the entry state is written by the code that owns it. |
-
-### `game/execution/` — the guest-call seam
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `GuestCall`, `NativeGuestFunction` | One typed guest call: address, return sentinel, arguments, optional stack argument, and the owner name that appears in every refusal. |
-| `ts2` | `callGuestToReturn`, `callFiniteGuestToReturn`, `executeFiniteGuestCall` | Bounded guest calls that must return: one turn, or a bounded number of resumed turns for a finite initialization transaction. |
-| `ts2::frame` | `FieldCall` | The title's policy over `psx::cpu::ResumableGuestCall` for a call the frame turn drives across display fields: publish the call's arguments, count and log the display fields it waited on, and treat a turn that ended `FrameBoundary` (a field) or `CooperativeYield` (a native replacement's slice) as the end of a host step while a `BudgetExhausted` turn continues inside the same step. |
-| `ts2` | `GuestCall`, `kOneFieldCallTurns`, `kFiniteInitializationSliceLimit`, `kResidentUpdateSliceLimit`, `publishCallArguments`, `callGuestToReturn`, `callFiniteGuestToReturn`, `guestString` | This title's guest-call facts: the entry, the return address, the arguments, the measured slice caps, one display field's requirement for a leaf call, and the one reader for a NUL-terminated string out of guest RAM. |
-| `ts2` | `callOriginalToReturn`, `callOriginalToReturnResuming` | Run a guest body that a native override replaced, once, or resumed across bounded turns. |
-| `ts2` | `guestString` | The one reader for a NUL-terminated string out of guest RAM, bounded by the longest name this title's guest spells. |
-| `ts2` | `installResidentOverride` | Register one image-scoped native override, refusing when the resident image identity is unavailable. |
-| `ts2` | `kFiniteInitializationSliceLimit`, `kResidentUpdateSliceLimit` | The slice bounds an asset decode and a resident update may take before they fail closed. |
-
-### `game/facts/` — measured title facts
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2::facts` | `kProgramImage`, `kPlatformHlePlan`, `kPadBufferLayout`, `kCdStreamCallbackLayout`, plus the crt0, overlay-slot, projection and pad constants | The verified `SLUS_008.93` facts the runtime hands the framework, each citing the bytes it came from. An unmeasured fact is absent deliberately; a plausible-looking wrong address does not fail cleanly. |
-
-### `game/runtime/` — composition
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `ToyStory2Runtime` | The `GameRuntime` the framework runs: every measured fact group, the render capabilities (the record path with temporal interpolation), the packet pool windows, the cut declaration, the widescreen policy, the frame driver, the input phase, and the registration of every resident override. |
-| `ts2` | `ToyStory2Context` | Everything one `Core` owns, in the order a run reaches it: the boot owners, the code images and sound banks, the pad and the movie player, the frame cut, the actor incarnations and the actor being drawn. `ToyStory2Runtime::registerOverrides` calls each owner's `install` here. |
-| `ts2` | `context(Core&)` | The one accessor for that per-`Core` state; refuses a Core with no context. |
-
-### `game/input/` — host input
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `PadOwner` | The native pad owner: `service` publishes the host packet into the retail slot buffers (`0x800CF8A0`, `0x800CF8C8`) once per frame, `decode` answers the guest's decode from that buffer, `initialize`/`shutdown` are the ends of the guest's pad lifetime, and `install` registers the three overrides. |
-| `ts2` | `InputPhase` | The phase a pad recording is keyed on: four guest words that hold still while the screen that owns them is up, packed into the key `GameRuntime::inputPhase` returns. |
-
-### `game/cd/` — loading and CD facts
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2::cd` | `FileTransfer` | Answer the guest's whole-file read (`0x80082608`) from the authenticated disc image, or refuse it with a reason and transfer nothing; `FileTransfer::install` registers it and the bounded retry policy in its caller (`0x80082728`). |
-| `ts2::cd` | `StockLibcdLayout`, `kStockLibcdLayout` | The identity-checked stock-libcd entry points and state the title configuration and its boundary test consume. |
-| `ts2::cd` | `StrCompletionLayout`, `kStrCompletionLayout`, `kFmvWaitEntry`, `kFmvWaitRetries` | The STR ring state the FMV player blocks on, and the FMV overlay's own bounded wait. |
-
-### `game/overlay/` — streamed code images
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `OverlaySlot` | The code-image owner of one fixed guest-RAM slot: authenticate the disc source and the transferred bytes, publish one image identity, retire with translated-code invalidation over the slot window. |
-| `ts2` | `OverlayModule` | One retail file the loader places in a slot: guest spelling, disc location, exact byte count and SHA-256. |
-| `ts2` | `OverlayImages` | Both slots (LEVEL `0x800D12C0`, shared MEMORY/FMV `0x800D5D20`), the slot a load destination fills, and `installLoadObserver`: observe the retail file loader (`0x80082508`), run the original, then authenticate, publish or retire the slot it filled. |
-| `ts2` | `LevelSlotImage`, `SharedSlotImage` | The retail module tables for the two slots. |
-
-### `game/audio/` — sound banks
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2::audio` | `SoundBankProcessor` | `install` the guest's own VAB bank routine (`0x8007F108`) to run through the framework's bounded resume loop, so its size assertion costs bounded display fields and ends as a named refusal. |
-
-### `game/fmv/` — movies
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2::fmv` | `GuestMoviePlayer` | `install` the replacement for the FMV overlay's own streaming player (`0x800D7088`), scoped to the FMV image generation: one movie frame per host turn, and exactly the retail return value (0 at end, the cold-start word on a skip). |
-
-### `game/widescreen/` — 16:9
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `guestWidescreenPolicy` | The title's answer to "is this picture wider than the console's 4:3?", from the configured aspect. |
-| `ts2` | `ResidentWidescreenCull` | On the record path the guest keeps its retail 512-wide draw and centre and psxport's canvas adds the margins; this owner widens only what the guest culls against: the visibility window (`0x80027AF0`) and the published screen rectangle (`0x80010000`), while the latched plan is widescreen. |
-
-### `game/render/` — render producers
-
-| Namespace | Owner | Responsibility |
-|---|---|---|
-| `ts2` | `SlotMeshProducers` | Key the faces of the static mesh submitter (`0x800100E4`) and the rigid mesh drawer (`0x80017FF8`): each packet in the slot array is `(submitter, instance slot table *0x800A11CC, face entry)`. One object per call, `(submitter, instance slot table, 0)`; `save` keeps the call registers, the GTE control and the bytes of every range the body read (`MemoryRange`), `render(t)` re-runs the native body over host copies on blended control. Native bodies: `rigid_mesh_drawer.*` (`0x80017FF8`), `static_mesh_drawer.*` + `static_mesh_plan.cpp` (`0x800100E4`, positive-header meshes), the four subdividers (`quad_split*`, `tri_split*` over `split_engine.*`), `slot_packets.*` (links a packet and binds it to the open key), `slot_release.*` (child release), `mesh_culling.*`, all on `mesh_cpu.h` (register-level body, scratchpad `0x1F800000`). `MeshDrawers::plan` trials the call on host memory; a call it cannot run natively (negative-header meshes, unported sites) runs on the guest and `keyFaces` keys its slot-array packets as before. `slotEntries` counts a mesh's entries per submitter. |
-| `ts2` | `ResidentMeshLayout`, `ResidentMeshCommand`, `decodeResidentMeshLayout`, `decodeResidentMeshCommand` | The checked source layout and command walk of one resident mesh. |
-| `ts2` | `ActorIncarnations` | Which life of a pooled actor an object key names: observes the guest's actor reset `0x8006A9FC` (level start and respawn) and bumps that record's generation, folded above the RAM offset by `incarnationObject`. |
-| `ts2` | `ActorProducers` | Overrides the actor renderers `0x8002518C` and `0x80024174` to note the drawn actor's incarnation (`drawing()`) around the original body; `partObject` names a part as `(a0 part record, incarnation)`, so each part is one object. Opens no scope itself, so unported drawers stay unkeyed. Installs `PartStateRender` for `0x8002518C`. |
-| `ts2` | `PartFaceDrawers` | Native ports of the part drawers `0x8001C920` (prelit) and `0x8001DFE4` (per-corner normals) over `EmitMemory`: walk the part's faces and write each GT3/GT4 packet inside `(0x8002518C, part object, 0)`; the override and `PartStateRender` run the same body. Packets are byte-identical to the guest's (override differential: 0 mismatches on both). The DCPL-lit drawer `0x8001CD34` stays on the guest: no replay reaches it, so parts drawn with it keep their packets as drawn. |
-| `ts2` | `PartDrawRecorder`, `PartStateRender` | `save` keeps a part draw's inputs (drawer and arguments, GTE control registers, packet cursor, OT base and the guest ranges the body reads); `render(t)` blends the control registers of the same draw from the two records and re-runs `PartFaceDrawers::run` over host memory, emitting the host-built OT through `emitHostOrderingTable`. |
-| `ts2` | `OrderingTables` | Names the two graphics buffers' OTs (`0x2B4` into the buffer, `0x57C` buckets) so entries carry their bucket. |
-
-### `tools/`, `tests/`, `cmake/`
-
-| Path | Responsibility |
-|---|---|
-| `tools/` | Modular Python owners: the launcher (`run.py`, `psxport_fetch.py`), the gameplay control (`headless_run.py` with `resolve_disc.py`, `execution_ledger.py` and `ts2_route.py`), the gate (`verify.py`), the RE evidence path (`ram_image.py`, `ghidra_xref.py`, `re_xref.py`, `extract_exe.py`, `discdump.py`) and the RE tracker shim (`re_frontier.py`). |
-| `tests/` | The hermetic C++ boundaries: `toystory2_projection_boundary` (projection publication), `toystory2_cd_hle_boundary` (stock libcd), `frame_turn_boundary.cpp` (the per-field order, the outer-loop sequencing, the runtime factories, the record path and its widescreen plan), `resident_producers_boundary.cpp` (the pad owner, the slot-mesh and actor-face keys, actor incarnations, the frame cut), `toystory2_execution_boundary` (title execution) and `toystory2_level_start_card_boundary`. They exercise the shipping owners through a seam and never reimplement them. |
-| `cmake/toystory2_port.cmake`, `CMakeLists.txt` | The title source list, the include root (`game`), and the CTest surface. |
-
-## Who owns it
-
-### The frame turn
-
-- psxport's `psx::host::TitleSession::step` owns the turn (one presentation fence per step, counted against `PSXPORT_NATIVE_FRAMES`) and asks `ts2::ToyStory2Runtime::createFrameDriver` for the driver.
-- `ts2::ToyStory2FrameDriver::stepFrame` builds `ts2::CoreFrameBoundary` over the driver's `ts2::FrameCallState` and calls `ts2::stepResidentFrame`.
-- `ts2::stepResidentFrame` runs the measured order through `ResidentFrameBoundary`: `displayFieldQuota`, `beginLogicFrame`, `sampleInput`, `tickDisplayField` × quota, `serviceDeferredDisplay`, `present`, `updateResidentGame` (then `FrameCut::notePassEnded`), `advanceAudio`.
-- `updateResidentGame` is `ts2::stepOuterLoop(OuterLoopState&, OuterLoopBoundary&)`, which performs ONE finite title operation per call and records the next `OuterLoopPhase`.
-- A guest call that must return goes through `ts2::callGuestToReturn` / `ts2::callFiniteGuestToReturn`.
-- **While a movie or a loading call blocks**: the driver's `FrameCallState::fieldCall()` holds one `ts2::frame::FieldCall`, over `psx::cpu::ResumableGuestCall`. The guest's own field barrier (`0x8003FA68`, owned by `GraphicsSync::install`) publishes the elapsed fields and then exits the executor with `FrameBoundary`, so the turn comes back to `ResumableGuestCall::advance` as `Progress::fieldBoundary`; the native movie player (`game/fmv`) exits with `CooperativeYield` instead, which is `Progress::hostSlice`. Either way `stepOuterLoop` returns, the host presents that field, and the call is resumed at the same guest PC on the next step. Host input is pumped once per turn by `sampleInput`, so a blocking movie never stops the pad, the control channel or the window's events.
-
-### Host input → guest pad buffer
-
-- psxport's `psx::input::HostInput` is the ONE owner of host input: it drains the SDL event queue, holds the
-  delivered key state and the open controllers, and latches the P / `.` debug edges. `Pad` consumes its
-  mask through `Pad::pollHostInput`, the one pump every site calls.
-- The pump is serviced once per frame by `ResidentFrameBoundary::sampleInput` → `core.game->pad.serviceFrame()`.
-- The same step calls `ts2::PadOwner::service(Core&)`, which fills the retail slot buffers `0x800CF8A0` / `0x800CF8C8` through `Pad::fillBuffer`.
-- The guest reads that buffer through its own `0x8003AC58`, which `PadOwner::install` replaces with `PadOwner::decode` (active-low, release `0xFF`).
-- **Movie skip**: a Start press travels the ordinary pad path above; psxport's native FMV owner resolves it and the title's `GuestMoviePlayer` override returns the cold-start word `0x800A1670`, which ends the remaining intro movies.
-- **The debug control channel** (loopback, always open) drives host input through psxport's own pad path, so a channel-injected press is the same press a player makes.
-- **Replay phase**: `ts2::InputPhase::of(Core&)` packs four still guest words into the key `ToyStory2Runtime::inputPhase` returns, so a recording's presses are offsets from the screen that owns them.
-
-### Guest draw → presentation
-
-- `ToyStory2Runtime::renderCapabilities` selects psxport's record path: the device's executed GP0 is the picture, sealed once per logic frame and replayed (`psxport/docs/presentation.md`).
-- The guest builds update N's OT; the deferred field service (`0x80021028` → `0x8003A888`) draws it during frame N+1's `serviceDeferredDisplay`, then swaps the buffers. `ResidentFrameBoundary::present` seals that record (`commit(core, guestFields, nullptr)`) before update N+1 runs, then resets the packet spans.
-- **60 fps in-between**: psxport's `FramePresenter` blends the two shown records by key. Keys come from `SlotMeshProducers`; anything unkeyed is drawn as the newer record. A record `FrameCut` declares a cut is shown without an in-between.
-- **Widescreen**: psxport's record display plan widens the canvas around the retail picture; `ResidentWidescreenCull` widens the guest's culling so the margins are filled. Front-end screens show their authored width.
-
-### CD and streaming
-
-- The guest's own file loader (`0x80082508`) runs through `OverlayImages::installLoadObserver`, which authenticates the disc source and the transferred bytes, publishes or retires the slot identity, and installs the FMV player when the shared slot published FMV.
-- A whole-file read is answered by `ts2::cd::FileTransfer::transfer` from the authenticated disc image, with the retry policy in its caller bounded.
-- Asset decodes (`0x8003D88C` → `0x80021190`) run inside `callFiniteGuestToReturn` on the initialization bound; a sound-bank processor that reaches its assertion is bounded by `callOriginalToReturnResuming`.
-
-### Audio
-
-- psxport's `SpuAudio::frame()` is advanced once per turn by `ResidentFrameBoundary::advanceAudio`.
-- Movie audio is psxport's native FMV owner's own XA stream; no title owner writes samples.
-
-### The debug control channel
-
-- psxport owns the channel (`Game`'s debug server, loopback, port movable by env). The title contributes no route of its own: input, frames and the ledger are read through psxport's existing owners, and `tools/headless_run.py` reads the run-end ledger from the log. A client `quit` or a window close ends the run through the framework's run-end report.
+- A guest function Toy Story 2 replaces → `game/<subsystem>/`, installed from `ToyStory2Runtime::registerOverrides`.
+- A stock library body → a psxport stock class bound in `ToyStory2Runtime`, never a title copy.
+- Per-Core title state → `ToyStory2Session`.
+- A native drawer → `game/render/`, with a recorder and a `StateProducer` in the session table.
+- A measured guest address → beside the owner that reads it, evidence in `docs/re-frontier.md`.
+- Anything every title shares → psxport, not here.

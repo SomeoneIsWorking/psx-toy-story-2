@@ -22,7 +22,7 @@ namespace {
 std::optional<MeshDrawInputs> MeshDrawers::plan(const EmitMemory &memory, const MeshDrawCall &call) {
   switch (call.drawer) {
   case RigidMeshDrawer::kEntry:
-    return RigidMeshDrawer::ported(memory, call) ? std::optional(RigidMeshDrawer::inputs(memory, call)) : std::nullopt;
+    return RigidMeshDrawer::plan(memory, call);
   case StaticMeshDrawer::kEntry:
     return StaticMeshDrawer::plan(memory, call);
   default:

@@ -9,6 +9,7 @@
 
 #include <lucent/log.h>
 
+#include <cstdlib>
 #include <memory>
 #include <optional>
 
@@ -22,15 +23,21 @@ std::uint32_t entriesPerPrimitive(std::uint32_t submitter, std::uint8_t opcode) 
   return doublePacket ? 2u : 1u;
 }
 
-void keyFaces(Core &core, std::uint32_t submitter, std::uint32_t mesh, std::uint32_t table, std::uint32_t packets) {
-  const std::uint32_t entries = SlotMeshProducers::slotEntries(core, submitter, mesh);
+// The instance's slot table and packet base as they stood when the call began.
+struct SlotBinding {
+  std::uint32_t table = 0;
+  std::uint32_t packets = 0;
+};
+
+template <std::uint32_t Submitter> void keyFaces(Core &core, std::uint32_t mesh, SlotBinding slots) {
+  const std::uint32_t entries = SlotMeshProducers::slotEntries<Submitter>(core, mesh);
   for (std::uint32_t entry = 0; entry != entries; ++entry) {
-    const std::uint32_t slot = core.mem_r16(table + entry * 2u);
+    const std::uint32_t slot = core.mem_r16(slots.table + entry * 2u);
     if (slot == 0u) {
       continue;
     }
-    const psx::present::EmissionScope::Guard face(core.emission, submitter, table, entry);
-    core.emission.bindPacket(packets + slot * 4u);
+    const psx::present::EmissionScope::Guard face(core.emission, Submitter, slots.table, entry);
+    core.emission.bindPacket(slots.packets + slot * 4u);
   }
 }
 
@@ -44,10 +51,9 @@ void spillSavedRegisters(Core &core) {
 // A call whose commands have no native body: the guest original, its faces keyed.
 template <std::uint32_t Submitter> void submitOnGuest(Core *core) {
   const std::uint32_t mesh = core->r[4];
-  const std::uint32_t table = core->mem_r32(kInstanceSlotTable);
-  const std::uint32_t packets = core->mem_r32(kSlotPacketBase);
+  const SlotBinding slots{core->mem_r32(kInstanceSlotTable), core->mem_r32(kSlotPacketBase)};
   psx::cpu::callOriginalToReturn(*core, Submitter, psx::cpu::ExecutionBudget::currentTurn(*core), "slot mesh producer");
-  keyFaces(*core, Submitter, mesh, table, packets);
+  keyFaces<Submitter>(*core, mesh, slots);
 }
 
 template <std::uint32_t Submitter> void submit(Core *core) {
@@ -64,6 +70,10 @@ template <std::uint32_t Submitter> void submit(Core *core) {
   const psx::present::EmissionScope::Guard object(core->emission, Submitter, guest.mem_r32(kInstanceSlotTable), 0);
   const MeshDrawRecorder recorder(*core, call, *inputs);
   const std::optional<MeshDrawResult> result = MeshDrawers::run(guest, call);
+  if (!result) {
+    lucent::error("ts2-mesh", "planned call 0x{:08X} on mesh 0x{:08X} left its native body", Submitter, call.args[0]);
+    std::abort();
+  }
   recorder.save(*core, *result);
   core->r[2] = result->v0;
   core->r[3] = result->v1;
@@ -72,17 +82,17 @@ template <std::uint32_t Submitter> void submit(Core *core) {
 } // namespace
 
 // No dispatcher scope: it would key the body's unnamed pool packets by mesh, which pairs them by order.
-void SlotMeshProducers::install(Core &core) {
+void SlotMeshProducers::install(Core &core, psx::present::StateProducerTable &renders) {
   psx::cpu::installNativeOverride(core, kStaticMeshSubmitter, "static-mesh-producer", &submit<kStaticMeshSubmitter>);
   psx::cpu::installNativeOverride(core, kRigidMeshDrawer, "rigid-mesh-producer", &submit<kRigidMeshDrawer>);
-  core.stateProducers.install(kStaticMeshSubmitter, std::make_unique<MeshStateRender>(core));
-  core.stateProducers.install(kRigidMeshDrawer, std::make_unique<MeshStateRender>(core));
+  renders.install(kStaticMeshSubmitter, std::make_unique<MeshStateRender>(core));
+  renders.install(kRigidMeshDrawer, std::make_unique<MeshStateRender>(core));
 }
 
-std::uint32_t SlotMeshProducers::slotEntries(Core &core, std::uint32_t submitter, std::uint32_t mesh) {
+template <std::uint32_t Submitter> std::uint32_t SlotMeshProducers::slotEntries(Core &core, std::uint32_t mesh) {
   const std::optional<ResidentMeshLayout> layout = decodeResidentMeshLayout(psx::present::EmitMemory(core), mesh);
   // 0x80017FF8 reads only the positive vertex-count header.
-  if (!layout || (submitter == kRigidMeshDrawer && layout->hasAuxiliaryVertexRecords)) {
+  if (!layout || (Submitter == kRigidMeshDrawer && layout->hasAuxiliaryVertexRecords)) {
     return 0u;
   }
   std::uint32_t entries = 0;
@@ -96,9 +106,12 @@ std::uint32_t SlotMeshProducers::slotEntries(Core &core, std::uint32_t submitter
     if (command->terminal) {
       return entries;
     }
-    entries += command->primitiveCount * entriesPerPrimitive(submitter, command->opcode);
+    entries += command->primitiveCount * entriesPerPrimitive(Submitter, command->opcode);
     address = command->nextCommandAddress;
   }
 }
+
+template std::uint32_t SlotMeshProducers::slotEntries<SlotMeshProducers::kStaticMeshSubmitter>(Core &, std::uint32_t);
+template std::uint32_t SlotMeshProducers::slotEntries<SlotMeshProducers::kRigidMeshDrawer>(Core &, std::uint32_t);
 
 } // namespace ts2

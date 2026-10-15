@@ -21,10 +21,9 @@ constexpr std::uint32_t kMoviePlayer = 0x800D7088u;
 
 // The cold front end sets this once its first frame is up; the retail player returns it as the skip result.
 constexpr std::uint32_t kColdStartFlag = 0x800A1670u;
-constexpr std::size_t kMaxGuestPath = 128u;
 
 void moviePlayerOverride(Core *core) {
-  const std::string path = guestString(*core, core->r[4], kMaxGuestPath);
+  const std::string path = guestPath(*core, core->r[4]);
   if (path.empty()) {
     lucent::error("ts2-fmv", "movie player refused: empty path at 0x{:08X}", core->r[4]);
     core->r[2] = 0;

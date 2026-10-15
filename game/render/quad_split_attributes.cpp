@@ -9,7 +9,7 @@ namespace ts2 {
 namespace {
 
 // The values a child's corner can take: a parent corner, the middle of two corners, or the centre.
-enum Source : unsigned { K0, K1, K2, K3, M01, M02, M13, M23, Centre, kSources };
+enum Source : std::uint8_t { K0, K1, K2, K3, M01, M02, M13, M23, Centre, kSources };
 using Values = std::array<std::uint32_t, kSources>;
 using ChildSources = std::array<std::array<Source, 4>, 4>;
 

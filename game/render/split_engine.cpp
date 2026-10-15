@@ -61,15 +61,12 @@ void SplitEngine::release(std::uint32_t site) {
 // The eight or six tested points are the middles the two projections give and the corners. The x byte and the y
 // byte each hold a bit per point, the first point in the top bit. A coordinate the centre already shows on
 // screen counts for all points; else a point counts when it lies on the same side as the centre.
-void SplitEngine::storeScreenMask(std::uint32_t flags,
-                                  std::uint32_t xCentre,
-                                  std::uint32_t yCentre,
-                                  std::span<const std::uint32_t> points) {
+void SplitEngine::storeScreenMask(ScreenCentre centre, std::span<const std::uint32_t> points) {
   constexpr std::uint32_t kXLimit = 0x02000000u; // 512 columns, in the top half of a word
   constexpr std::uint32_t kYLimit = 0x00F00000u; // 240 rows
   std::uint32_t xs = 0xFFu;
-  if ((flags & 2u) == 0u) {
-    const bool left = negative(xCentre << 16);
+  if ((centre.shownAxes & 2u) == 0u) {
+    const bool left = negative(centre.x << 16);
     xs = 0;
     for (const std::uint32_t p : points) {
       const bool on = left ? !negative(p << 16) : MeshCpu::slt(p << 16, kXLimit) != 0u;
@@ -77,8 +74,8 @@ void SplitEngine::storeScreenMask(std::uint32_t flags,
     }
   }
   std::uint32_t ys = 0xFFu;
-  if ((flags & 1u) == 0u) {
-    const bool above = negative(yCentre);
+  if ((centre.shownAxes & 1u) == 0u) {
+    const bool above = negative(centre.y);
     ys = 0;
     for (const std::uint32_t p : points) {
       const bool on = above ? !negative(p) : MeshCpu::slt(p, kYLimit) != 0u;
@@ -262,12 +259,10 @@ void SplitEngine::releaseWhole(unsigned i) {
 
 // Puts a child on the ordering table at `bucket`, the address of the offset its depth selects, and fills in its
 // corners.
-void SplitEngine::link(std::uint32_t packet,
-                       std::uint32_t bucket,
-                       std::uint32_t command,
-                       std::span<const unsigned> corners) {
+void SplitEngine::link(ChildLink child, std::uint32_t command, std::span<const unsigned> corners) {
   MeshCpu &c = c_;
-  c.at = bucket;
+  const std::uint32_t packet = child.packet;
+  c.at = child.bucket;
   c.t4 = command;
   c.t5 = c.lhu(c.at + 0);
   c.t6 = packet << 8;
@@ -340,9 +335,9 @@ void SplitEngine::band(unsigned i, const Band &b) {
   }
   const std::uint32_t bucket = ((sum >> 2) & 0xFFFCu) + c.s1;
   if (isQuad) {
-    link(packet, bucket, f_.quadCommand, b.quad);
+    link({.packet = packet, .bucket = bucket}, f_.quadCommand, b.quad);
   } else {
-    link(packet, bucket, f_.triangleCommand, b.triangle);
+    link({.packet = packet, .bucket = bucket}, f_.triangleCommand, b.triangle);
   }
 }
 

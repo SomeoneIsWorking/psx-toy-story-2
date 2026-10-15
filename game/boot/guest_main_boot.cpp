@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <lucent/log.h>
+#include <string_view>
 
 namespace ts2 {
 namespace {
@@ -31,10 +32,8 @@ constexpr uint32_t kPlaybackMode = 0x800A1670u;
 constexpr uint32_t kMenuPhase = 0x800A14D8u;
 constexpr uint32_t kLoopExitReason = 0x800A136Eu;
 
-void callGuest(Core &core, uint32_t address, uint32_t returnAddress, uint32_t a0 = 0, uint32_t a1 = 0) {
-  const std::array arguments{a0, a1};
-  callGuestToReturn(core, {address, returnAddress, arguments, std::nullopt, "Toy Story 2 boot"});
-}
+constexpr std::string_view kBootOwner = "Toy Story 2 boot";
+constexpr std::array<uint32_t, 2> kZeroArguments{};
 
 } // namespace
 
@@ -45,7 +44,7 @@ void GuestMainBoot::initialize(Core &core) {
   core.mem_w32(core.r[29] + 36, core.r[17]);
   core.mem_w32(core.r[29] + 32, core.r[16]);
 
-  callGuest(core, kMainLibcInit, 0x8007A9FCu);
+  callGuestToReturn(core, {kMainLibcInit, 0x8007A9FCu, kZeroArguments, std::nullopt, kBootOwner});
 
   core.mem_w32(kBootMode, 0);
   core.mem_w32(kBootSelection, 2);
@@ -75,13 +74,12 @@ void GuestMainBoot::initialize(Core &core) {
 
 void GuestMainBoot::finishOverlayInitialization(Core &core) {
   // MEMORY init may use the field barrier, so it runs in a finite host frame after field delivery.
-  callGuest(core, kLoadMemoryOverlay, 0x8007AABCu);
-  callGuest(core,
-            kInitializeMemoryOverlay,
-            0x8007AAD0u,
-            static_cast<uint32_t>(core.mem_r16s(kMemoryMode)),
-            static_cast<uint32_t>(core.mem_r16s(kMemoryVariant)));
-  callGuest(core, kInitializeDisplayMode, 0x8007AAE8u, core.mem_r8(kDisplayWidthMode), core.mem_r8(kDisplayHeightMode));
+  callGuestToReturn(core, {kLoadMemoryOverlay, 0x8007AABCu, kZeroArguments, std::nullopt, kBootOwner});
+  const std::array memoryMode{static_cast<uint32_t>(core.mem_r16s(kMemoryMode)),
+                              static_cast<uint32_t>(core.mem_r16s(kMemoryVariant))};
+  callGuestToReturn(core, {kInitializeMemoryOverlay, 0x8007AAD0u, memoryMode, std::nullopt, kBootOwner});
+  const std::array displayMode{uint32_t{core.mem_r8(kDisplayWidthMode)}, uint32_t{core.mem_r8(kDisplayHeightMode)}};
+  callGuestToReturn(core, {kInitializeDisplayMode, 0x8007AAE8u, displayMode, std::nullopt, kBootOwner});
 
   lucent::info("ts2-boot", "finite FrameDriver completed guest main's overlay initialization");
 }

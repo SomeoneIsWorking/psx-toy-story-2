@@ -1,58 +1,43 @@
-// Projection boundary: the title's libgte addresses install the shared leaves and mutate CPU/GTE state like
-// retail. Hermetic.
+// Projection boundary: the runtime binds the stock libgte, libgpu and VSync bodies at the title's addresses,
+// and they mutate CPU/GTE state like retail. Hermetic.
 
 #include "core.h"
 #include "game.h"
-#include "hw_bind.h"
 #include "platform_hle.h"
-#include "runtime/toystory2_runtime.h"
 #include "testutil.h"
-
-#include <memory>
+#include "title_game.h"
 
 namespace {
 
 constexpr uint32_t kSetGeomOffset = 0x80083CD4u;
 constexpr uint32_t kSetGeomScreen = 0x80083CF4u;
-constexpr uint32_t kProjectionLeavesEnd = 0x80083D00u;
 constexpr uint32_t kGpuTimeoutArm = 0x80088380u;
 constexpr uint32_t kGpuTimeoutCheck = 0x800883B4u;
 constexpr uint32_t kGpuTimeoutDeadline = 0x8009EC20u;
 constexpr uint32_t kGpuTimeoutFlag = 0x8009EC24u;
 constexpr uint32_t kVSync = 0x80088628u;
-constexpr uint32_t kVSyncBodyEnd = 0x80088770u;
 
-std::unique_ptr<Game> freshGame() {
-  static ts2::ToyStory2Runtime runtime;
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
-  gte_bind(&game->core);
-  game->platform_hle.initBuiltins();
-  return game;
+void test_registration_binds_projection_gpu_timeout_and_vsync_at_their_entries() {
+  ts2::test::TitleGame title;
+  title.registerOverrides();
+  const PlatformHle &table = title.game().platform_hle;
+
+  CHECK(table.lookup(kSetGeomOffset) != nullptr);
+  CHECK(table.lookup(kSetGeomScreen) != nullptr);
+  CHECK(table.lookup(kGpuTimeoutArm) != nullptr);
+  CHECK(table.lookup(kGpuTimeoutCheck) != nullptr);
+  CHECK(table.lookup(kVSync) != nullptr);
+  CHECK(table.lookup(kSetGeomOffset + 4) == nullptr);
+  CHECK(table.lookup(kVSync + 4) == nullptr);
+  CHECK(table.lookup(0x8003A650u) == nullptr); // title graphics init is never a stock body
 }
 
-} // namespace
-
-static void test_measured_windows_install_projection_gpu_timeout_and_vsync_owners() {
-  auto game = freshGame();
-
-  CHECK(game->platform_hle.lookup(kSetGeomOffset) != nullptr);
-  CHECK(game->platform_hle.lookup(kSetGeomScreen) != nullptr);
-  CHECK(game->platform_hle.lookup(kGpuTimeoutArm) != nullptr);
-  CHECK(game->platform_hle.lookup(kGpuTimeoutCheck) != nullptr);
-  CHECK(game->platform_hle.lookup(kVSync) != nullptr);
-  CHECK(game->platform_hle.lookup(kSetGeomOffset - 4) == nullptr);
-  CHECK(game->platform_hle.lookup(kProjectionLeavesEnd) == nullptr);
-  CHECK(game->platform_hle.lookup(kVSync - 4) == nullptr);
-  CHECK(game->platform_hle.lookup(kVSyncBodyEnd) == nullptr);
-  CHECK(game->platform_hle.lookup(0x8003A650u) == nullptr); // title graphics init is never HLE'd
-}
-
-static void test_gpu_timeout_pair_completes_without_guest_vsync() {
-  auto game = freshGame();
-  Core &core = game->core;
-  OverrideFn arm = game->platform_hle.lookup(kGpuTimeoutArm);
-  OverrideFn check = game->platform_hle.lookup(kGpuTimeoutCheck);
+void test_gpu_timeout_pair_completes_without_guest_vsync() {
+  ts2::test::TitleGame title;
+  title.registerOverrides();
+  Core &core = title.core();
+  OverrideFn arm = title.game().platform_hle.lookup(kGpuTimeoutArm);
+  OverrideFn check = title.game().platform_hle.lookup(kGpuTimeoutCheck);
   CHECK(arm != nullptr);
   CHECK(check != nullptr);
 
@@ -66,10 +51,11 @@ static void test_gpu_timeout_pair_completes_without_guest_vsync() {
   CHECK_EQ(core.r[2], 0u);
 }
 
-static void test_offset_leaf_preserves_retail_state_and_records_projection() {
-  auto game = freshGame();
-  Core &core = game->core;
-  OverrideFn setOffset = game->platform_hle.lookup(kSetGeomOffset);
+void test_offset_leaf_preserves_retail_state_and_records_projection() {
+  ts2::test::TitleGame title;
+  title.registerOverrides();
+  Core &core = title.core();
+  OverrideFn setOffset = title.game().platform_hle.lookup(kSetGeomOffset);
   CHECK(setOffset != nullptr);
 
   core.r[4] = 256u;
@@ -78,18 +64,19 @@ static void test_offset_leaf_preserves_retail_state_and_records_projection() {
 
   CHECK_EQ(core.r[4], 256u << 16);
   CHECK_EQ(core.r[5], 120u << 16);
-  CHECK_EQ(gte_read_ctrl(24), 256u << 16);
-  CHECK_EQ(gte_read_ctrl(25), 120u << 16);
+  CHECK_EQ(core.gte().readControl(24), 256u << 16);
+  CHECK_EQ(core.gte().readControl(25), 120u << 16);
   CHECK_EQ(core.rsub.projParams.geomOfx(), 256.0f);
   CHECK_EQ(core.rsub.projParams.geomOfy(), 120.0f);
   CHECK(!core.rsub.projParams.geomValid());
 }
 
-static void test_screen_leaf_completes_same_core_projection() {
-  auto game = freshGame();
-  Core &core = game->core;
-  OverrideFn setOffset = game->platform_hle.lookup(kSetGeomOffset);
-  OverrideFn setScreen = game->platform_hle.lookup(kSetGeomScreen);
+void test_screen_leaf_completes_same_core_projection() {
+  ts2::test::TitleGame title;
+  title.registerOverrides();
+  Core &core = title.core();
+  OverrideFn setOffset = title.game().platform_hle.lookup(kSetGeomOffset);
+  OverrideFn setScreen = title.game().platform_hle.lookup(kSetGeomScreen);
   CHECK(setOffset != nullptr);
   CHECK(setScreen != nullptr);
 
@@ -100,13 +87,15 @@ static void test_screen_leaf_completes_same_core_projection() {
   setScreen(&core);
 
   CHECK_EQ(core.r[4], 160u); // retail SetGeomScreen does not mutate a0
-  CHECK_EQ(gte_read_ctrl(26), 160u);
+  CHECK_EQ(core.gte().readControl(26), 160u);
   CHECK_EQ(core.rsub.projParams.geomH(), 160.0f);
   CHECK(core.rsub.projParams.geomValid());
 }
 
+} // namespace
+
 int main() {
-  RUN(measured_windows_install_projection_gpu_timeout_and_vsync_owners);
+  RUN(registration_binds_projection_gpu_timeout_and_vsync_at_their_entries);
   RUN(gpu_timeout_pair_completes_without_guest_vsync);
   RUN(offset_leaf_preserves_retail_state_and_records_projection);
   RUN(screen_leaf_completes_same_core_projection);

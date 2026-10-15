@@ -7,12 +7,14 @@ class Core;
 namespace ts2 {
 
 // Native owner for the digital pad: boot, shutdown and packet-decode boundaries that libpad would own.
+// The runtime's StockPadBuffers delivers each pad frame into the slot buffers the decoder reads.
 class PadOwner {
 public:
-  void install(Core &core);
+  // 0x8003EEF0 passes these buffers to PadInitDirect.
+  inline static constexpr uint32_t kSlot0Buffer = 0x800CF8A0u;
+  inline static constexpr uint32_t kSlot1Buffer = 0x800CF8C8u;
 
-  // Publish the host packet into the retail slot buffers; this title's decoder reads them, not the SIO path.
-  void service(Core &core);
+  void install(Core &core);
 
   void initialize(Core &core);
   void shutdown(Core &core);

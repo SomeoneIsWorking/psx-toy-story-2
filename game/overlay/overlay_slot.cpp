@@ -32,8 +32,8 @@ std::uint64_t contentIdentity(const lucent::content::Sha256 &digest) {
 
 } // namespace
 
-OverlaySlot::OverlaySlot(std::uint32_t loadAddress, std::uint32_t windowBytes, std::vector<OverlayModule> modules)
-    : loadAddress_(loadAddress), windowBytes_(windowBytes), modules_(std::move(modules)) {}
+OverlaySlot::OverlaySlot(OverlayWindow window, std::vector<OverlayModule> modules)
+    : loadAddress_(window.loadAddress), windowBytes_(window.bytes), modules_(std::move(modules)) {}
 
 std::optional<std::size_t>
 OverlaySlot::matchLoad(Core &core, std::uint32_t guestPath, std::uint32_t destination) const {

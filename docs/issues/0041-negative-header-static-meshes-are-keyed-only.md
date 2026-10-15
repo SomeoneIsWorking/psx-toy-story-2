@@ -6,7 +6,7 @@ symptom: Static meshes with auxiliary vertex records (negative header) are keyed
 tags: interpolation,render,producers
 state_items: S011
 created: 2026-10-07
-updated: 2026-10-09
+updated: 2026-10-15
 ---
 
 The static mesh submitter `0x800100E4` keeps one packet per face in the slot array, and
@@ -38,7 +38,12 @@ The static submitter's negative-header meshes (header word <= 0: auxiliary verte
 normalises the rotation rows and fills the light control registers, then command 12 `0x80012FE0`, the
 reflective quad, and command 0) are not ported. `MeshDrawers::plan` refuses them and the call runs on the
 guest with `keyFaces` keying its slot-array packets: 2,342 calls over 2,500 frames of the Andy's House
-route, 6 double-packet primitives and 4 quads each. They interpolate through psxport's `keyedBlend` only.
+route, 6 double-packet primitives and 4 quads each. They interpolate through psxport's `keyedBlend` only. The census reports them as keyed without a render: 8,362 primitives over the 2000-frame Andy's House route, all from `0x800100E4`; `0x80012FE0` is reached on that route.
+
+Size, from the exact bytes: the prologue `0x80010124..0x800102EC` normalises three rows through
+`0x80083944` (11 instructions), writes the light control registers and clears the cache `0x800B27A8`
+(`(n + 3) / 4` blocks of 32 bytes); commands 8 and 12 share handler `0x80012FE0..0x80013AFB` (711
+instructions). The handler's sub-calls and the reflective quad are not yet read.
 
 **Proper fix**: port the prologue (the `0x80083944` normaliser, the `0x800B27A8` cache clear, the control
 register writes) and handler `0x80012FE0` in the static walk, extend `Gather` with the cache range, prove with

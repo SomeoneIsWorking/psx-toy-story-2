@@ -1,6 +1,7 @@
 #include "render/rigid_mesh_drawer.h"
 
 #include "core.h"
+#include "facts/guest_facts.h"
 #include "gte_registers.h"
 #include "render/mesh_culling.h"
 #include "render/mesh_format.h"
@@ -8,6 +9,8 @@
 #include "render/slot_packets.h"
 
 #include <array>
+#include <cstdlib>
+#include <lucent/log.h>
 #include <optional>
 #include <span>
 
@@ -59,31 +62,31 @@ std::optional<Kind> kindOf(std::uint32_t opcode) {
 
 // Every projected depth in front of the near limit. The guest loads the next depth in the delay slot of each
 // branch, so v1 holds a later depth or comparison than the test that ended the path.
-bool nearOutside(CullRegisters &r, bool quad, std::uint32_t limit) {
+bool nearOutside(psx::cpu::Gte &gte, CullRegisters &r, bool quad, std::uint32_t limit) {
   if (quad) {
-    if (!below(gteRead(psx::gte::kSz1), limit)) {
-      r.v1 = gteRead(kSz2);
+    if (!below(gte.readData(psx::gte::kSz1), limit)) {
+      r.v1 = gte.readData(kSz2);
       return false;
     }
-    const bool second = below(gteRead(kSz2), limit);
-    r.v1 = gteRead(kSz0);
+    const bool second = below(gte.readData(kSz2), limit);
+    r.v1 = gte.readData(kSz0);
     if (!second) {
       return false;
     }
-    const bool third = below(gteRead(kSz3), limit);
+    const bool third = below(gte.readData(kSz3), limit);
     r.v1 = below(r.v1, limit) ? 1u : 0u;
     return third && r.v1 != 0u;
   }
-  if (!below(gteRead(psx::gte::kSz1), limit)) {
-    r.v1 = gteRead(kSz3);
+  if (!below(gte.readData(psx::gte::kSz1), limit)) {
+    r.v1 = gte.readData(kSz3);
     return false;
   }
-  const bool second = below(gteRead(kSz2), limit);
-  r.v1 = below(gteRead(kSz3), limit) ? 1u : 0u;
+  const bool second = below(gte.readData(kSz2), limit);
+  r.v1 = below(gte.readData(kSz3), limit) ? 1u : 0u;
   return second && r.v1 != 0u;
 }
 
-enum class Outcome { Culled, Dropped, Linked };
+enum class Outcome : std::uint8_t { Culled, Dropped, Linked };
 
 class Walk {
 public:
@@ -99,6 +102,10 @@ private:
   void newSlot(const Kind &kind, std::uint32_t s0, const std::array<std::uint32_t, 4> &corners, std::uint32_t slot);
   void link(const Kind &kind, std::uint32_t bucket, const std::array<std::uint32_t, 4> &xy);
   void release(const Kind &kind);
+
+  psx::cpu::Gte &gte() const {
+    return m_.core().gte();
+  }
 
   const EmitMemory &m_;
   const MeshDrawCall &call_;
@@ -148,7 +155,12 @@ MeshDrawResult Walk::run() {
     if (opcode >= 24u) {
       break;
     }
-    command(*kindOf(opcode), s0, count);
+    const std::optional<Kind> kind = kindOf(opcode);
+    if (!kind) {
+      lucent::error("ts2-mesh", "rigid mesh 0x{:08X} reached unported opcode {} at 0x{:08X}", mesh, opcode, s0 - 4u);
+      std::abort();
+    }
+    command(*kind, s0, count);
   }
   return {nothingDrawn_, r_.v1};
 }
@@ -190,26 +202,26 @@ Outcome Walk::primitive(const Kind &kind, std::uint32_t s0, std::int32_t &count)
   };
   std::uint32_t second = 0;
   if (kind.quad) {
-    gteWrite(psx::gte::kVxy0, m_.mem_r32(corner[1]));
-    gteWrite(psx::gte::kVz0, m_.mem_r32(corner[1] + 4u));
-    gte_op(&m_.core(), psx::gte::kRtps);
-    gteWrite(psx::gte::kVxy0, m_.mem_r32(corner[3]));
-    gteWrite(psx::gte::kVz0, vertexZ(corner[3]));
-    gteWrite(psx::gte::kVxy1, m_.mem_r32(corner[2]));
-    gteWrite(psx::gte::kVz1, vertexZ(corner[2]));
-    gteWrite(psx::gte::kVxy2, m_.mem_r32(corner[0]));
-    gteWrite(psx::gte::kVz2, m_.mem_r32(corner[0] + 4u));
-    second = gteRead(psx::gte::kSxy2);
+    gte().writeData(psx::gte::kVxy0, m_.mem_r32(corner[1]));
+    gte().writeData(psx::gte::kVz0, m_.mem_r32(corner[1] + 4u));
+    gte().execute(psx::gte::kRtps);
+    gte().writeData(psx::gte::kVxy0, m_.mem_r32(corner[3]));
+    gte().writeData(psx::gte::kVz0, vertexZ(corner[3]));
+    gte().writeData(psx::gte::kVxy1, m_.mem_r32(corner[2]));
+    gte().writeData(psx::gte::kVz1, vertexZ(corner[2]));
+    gte().writeData(psx::gte::kVxy2, m_.mem_r32(corner[0]));
+    gte().writeData(psx::gte::kVz2, m_.mem_r32(corner[0] + 4u));
+    second = gte().readData(psx::gte::kSxy2);
   } else {
-    gteWrite(psx::gte::kVxy2, m_.mem_r32(corner[0]));
-    gteWrite(psx::gte::kVz2, m_.mem_r32(corner[0] + 4u));
-    gteWrite(psx::gte::kVxy1, m_.mem_r32(corner[1]));
-    gteWrite(psx::gte::kVz1, m_.mem_r32(corner[1] + 4u));
-    gteWrite(psx::gte::kVxy0, m_.mem_r32(corner[2]));
-    gteWrite(psx::gte::kVz0, m_.mem_r32(corner[2] + 4u));
+    gte().writeData(psx::gte::kVxy2, m_.mem_r32(corner[0]));
+    gte().writeData(psx::gte::kVz2, m_.mem_r32(corner[0] + 4u));
+    gte().writeData(psx::gte::kVxy1, m_.mem_r32(corner[1]));
+    gte().writeData(psx::gte::kVz1, m_.mem_r32(corner[1] + 4u));
+    gte().writeData(psx::gte::kVxy0, m_.mem_r32(corner[2]));
+    gte().writeData(psx::gte::kVz0, m_.mem_r32(corner[2] + 4u));
   }
   --count;
-  gte_op(&m_.core(), psx::gte::kRtpt);
+  gte().execute(psx::gte::kRtpt);
   slot_ = m_.mem_r16s(slotTable_);
   const std::uint32_t next = m_.mem_r32(s0 + (kind.textured ? 12u : 4u));
   r_.v1 = m_.mem_r32(kRowMax);
@@ -218,8 +230,8 @@ Outcome Walk::primitive(const Kind &kind, std::uint32_t s0, std::int32_t &count)
 
   const bool oneSidedQuad = kind.quad && !kind.twoSided;
   if (oneSidedQuad) {
-    gte_op(&m_.core(), psx::gte::kNclip);
-    r_.a3 = gteRead(psx::gte::kMac0);
+    gte().execute(psx::gte::kNclip);
+    r_.a3 = gte().readData(psx::gte::kMac0);
     if (negative(r_.a3)) {
       return Outcome::Culled;
     }
@@ -228,31 +240,31 @@ Outcome Walk::primitive(const Kind &kind, std::uint32_t s0, std::int32_t &count)
   std::array<std::uint32_t, 4> xy{};
   std::array<std::uint32_t, 4> tests{};
   if (kind.quad) {
-    xy = {gteRead(psx::gte::kSxy2), second, gteRead(psx::gte::kSxy0), gteRead(psx::gte::kSxy1)};
+    xy = {gte().readData(psx::gte::kSxy2), second, gte().readData(psx::gte::kSxy0), gte().readData(psx::gte::kSxy1)};
     tests = {xy[3], xy[0], second, xy[2]};
   } else {
-    xy = {gteRead(psx::gte::kSxy2), gteRead(psx::gte::kSxy1), gteRead(psx::gte::kSxy0), 0u};
+    xy = {gte().readData(psx::gte::kSxy2), gte().readData(psx::gte::kSxy1), gte().readData(psx::gte::kSxy0), 0u};
     tests = {xy[2], xy[0], xy[1], 0u};
   }
   const std::span<const std::uint32_t> corners = std::span(tests).first(kind.quad ? 4u : 3u);
   if (!oneSidedQuad) {
-    gte_op(&m_.core(), psx::gte::kNclip);
+    gte().execute(psx::gte::kNclip);
   }
   if (rowsOutside(r_, corners)) {
     return Outcome::Culled;
   }
   if (kind.quad && kind.twoSided) {
-    r_.at = gteRead(psx::gte::kMac0);
-    gteWrite(psx::gte::kSxy2, second);
+    r_.at = gte().readData(psx::gte::kMac0);
+    gte().writeData(psx::gte::kSxy2, second);
     if (negative(r_.at)) {
-      gte_op(&m_.core(), psx::gte::kNclip);
-      r_.v1 = gteRead(psx::gte::kMac0);
+      gte().execute(psx::gte::kNclip);
+      r_.v1 = gte().readData(psx::gte::kMac0);
       if (negative(r_.v1)) {
         return Outcome::Culled;
       }
     }
   } else if (!kind.quad) {
-    r_.at = gteRead(psx::gte::kMac0);
+    r_.at = gte().readData(psx::gte::kMac0);
     if (negative(r_.at)) {
       return Outcome::Culled;
     }
@@ -263,17 +275,17 @@ Outcome Walk::primitive(const Kind &kind, std::uint32_t s0, std::int32_t &count)
   if (columnsOutside(r_, corners)) {
     // The branch that culls a primitive left of the screen has the depth average in its delay slot.
     if (negative(r_.v0)) {
-      gte_op(&m_.core(), average);
+      gte().execute(average);
     }
     return Outcome::Culled;
   }
-  gte_op(&m_.core(), average);
+  gte().execute(average);
   const std::uint32_t limit = m_.mem_r32(kNearLimit) << 2;
   r_.v0 = m_.mem_r32(kFree);
-  if (nearOutside(r_, kind.quad, limit)) {
+  if (nearOutside(gte(), r_, kind.quad, limit)) {
     return Outcome::Culled;
   }
-  r_.at = gteRead(psx::gte::kOtz);
+  r_.at = gte().readData(psx::gte::kOtz);
   r_.a3 = r_.at - otzLimit_;
   if (static_cast<std::int32_t>(r_.a3) > 0) {
     return Outcome::Culled;
@@ -299,7 +311,7 @@ void Walk::newSlot(const Kind &kind,
                    std::uint32_t s0,
                    const std::array<std::uint32_t, 4> &corners,
                    std::uint32_t slot) {
-  const SlotPair pair = fillNewSlot(m_, shapeOf(kind), s0, corners, slot, packets_);
+  const SlotPair pair = fillNewSlot(m_, shapeOf(kind), s0, corners, {.index = slot, .packets = packets_});
   r_.v0 = pair.alt;
   r_.v1 = pair.own;
 }
@@ -312,25 +324,20 @@ void Walk::link(const Kind &kind, std::uint32_t bucket, const std::array<std::ui
 
 } // namespace
 
-bool RigidMeshDrawer::ported(const EmitMemory &memory, const MeshDrawCall &call) {
-  const std::optional<ResidentMeshStream> stream = walkResidentMesh(memory, call.args[0]);
-  if (!stream || stream->layout.hasAuxiliaryVertexRecords || stream->primitives >= kMaxPrimitives) {
-    return false;
-  }
-  for (const ResidentMeshCommand &command : stream->commands) {
-    if (!command.terminal && !kindOf(command.opcode)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 MeshDrawResult RigidMeshDrawer::run(const EmitMemory &memory, const MeshDrawCall &call) {
   return Walk(memory, call).run();
 }
 
-MeshDrawInputs RigidMeshDrawer::inputs(const EmitMemory &m, const MeshDrawCall &call) {
+std::optional<MeshDrawInputs> RigidMeshDrawer::plan(const EmitMemory &m, const MeshDrawCall &call) {
   const std::optional<ResidentMeshStream> stream = walkResidentMesh(m, call.args[0]);
+  if (!stream || stream->layout.hasAuxiliaryVertexRecords || stream->primitives >= kMaxPrimitives) {
+    return std::nullopt;
+  }
+  for (const ResidentMeshCommand &command : stream->commands) {
+    if (!command.terminal && !kindOf(command.opcode)) {
+      return std::nullopt;
+    }
+  }
   MeshDrawInputs inputs;
   inputs.primitives = stream->primitives;
   inputs.meshBytes = stream->end - call.args[0];
@@ -340,7 +347,7 @@ MeshDrawInputs RigidMeshDrawer::inputs(const EmitMemory &m, const MeshDrawCall &
   for (const std::uint32_t global : {kBucketOffsets, kOtzLimit, kInstanceSlotTable}) {
     ranges.push_back({global, sizeof(std::uint32_t)});
   }
-  ranges.push_back({kTexturePages, kTexturePageBytes});
+  ranges.push_back({facts::kTexturePages, facts::kTexturePageTableBytes});
   const std::uint32_t table = m.mem_r32(kInstanceSlotTable);
   ranges.push_back({table, stream->primitives * 2u});
   const std::uint32_t packets = m.mem_r32(kSlotPacketBase);

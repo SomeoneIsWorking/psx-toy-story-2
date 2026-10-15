@@ -34,6 +34,7 @@ private:
   FieldCall fieldCall_;
   std::size_t introMovieStep_ = 0;
   SelectionCall selectionCall_ = SelectionCall::screenLoop;
+  uint32_t queuedScreen_ = 0;
 };
 
 class CoreFrameBoundary final : public ResidentFrameBoundary, public OuterLoopBoundary {
