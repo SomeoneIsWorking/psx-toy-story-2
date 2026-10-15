@@ -1,6 +1,6 @@
-#include "entry/toystory2_catalog.h"
+#include "entry/catalog.h"
 
-#include "runtime/toystory2_runtime.h"
+#include "runtime/runtime.h"
 #include "single_title_catalog.h"
 
 namespace ts2 {
@@ -26,8 +26,7 @@ constexpr psx::host::TitleIdentity kTitleIdentity{
 } // namespace
 
 std::unique_ptr<psx::host::TitleCatalog> createCatalog() {
-  return std::make_unique<psx::host::SingleTitleCatalog>(
-      kTitleIdentity, "scratch/bin", std::make_unique<ToyStory2Runtime>());
+  return std::make_unique<psx::host::SingleTitleCatalog>(kTitleIdentity, "scratch/bin", std::make_unique<Runtime>());
 }
 
 } // namespace ts2

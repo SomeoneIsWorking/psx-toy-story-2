@@ -7,7 +7,7 @@
 #include "fmv/movie_player.h"
 #include "game.h"
 #include "native_dispatch.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 #include <algorithm>
 #include <array>

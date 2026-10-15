@@ -18,7 +18,7 @@ class Core;
 namespace ts2 {
 
 // Everything one Core owns outside guest RAM, created with its Game.
-class ToyStory2Session final : public psx::game::TitleSessionState {
+class Session final : public psx::game::TitleSessionState {
 public:
   GuestMainBoot guestMainBoot;
   GraphicsSync graphicsSync;
@@ -37,6 +37,6 @@ public:
 };
 
 // The session of the Game `core` belongs to; aborts when it has none.
-ToyStory2Session &session(Core &core);
+Session &session(Core &core);
 
 } // namespace ts2

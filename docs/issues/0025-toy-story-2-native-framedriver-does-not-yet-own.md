@@ -7,7 +7,7 @@ tags: frame-loop,vsync,host-ownership,resident,overlay
 created: 2026-08-27
 updated: 2026-10-03
 
-`replays/toystory2_exit_level_v2.pad` (7 phase-keyed segments, nothing dropped) runs pause → `EXIT LEVEL`
+`replays/exit_level_v2.pad` (7 phase-keyed segments, nothing dropped) runs pause → `EXIT LEVEL`
 → `ARE YOU SURE?` → results → token screen → level card → back in Andy's House, playable. The transition
 takes the outer loop's `0x800C166C`-gated event 1 → `residentSetup` and re-authenticates LEVEL01.
 

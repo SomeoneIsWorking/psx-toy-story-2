@@ -8,7 +8,7 @@
 #include "facts/guest_facts.h"
 #include "input/pad_owner.h"
 #include "native_dispatch.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 #include <algorithm>
 #include <array>

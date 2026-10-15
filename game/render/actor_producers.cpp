@@ -6,7 +6,7 @@
 #include "render/actor_incarnation.h"
 #include "render/part_draw_state.h"
 #include "render/part_face_drawers.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 #include <cstdlib>
 #include <lucent/log.h>
@@ -16,7 +16,7 @@ namespace ts2 {
 namespace {
 
 template <std::uint32_t Renderer> void renderActor(Core *core) {
-  ToyStory2Session &game = session(*core);
+  Session &game = session(*core);
   game.actorProducers.setDrawing(game.actorIncarnations.generation(core->r[4]));
   psx::cpu::callOriginalToReturn(*core, Renderer, psx::cpu::ExecutionBudget::currentTurn(*core), "actor producer");
   game.actorProducers.setDrawing(std::nullopt);
