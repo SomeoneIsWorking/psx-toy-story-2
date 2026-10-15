@@ -193,7 +193,6 @@ void test_runtime_selects_the_record_path_with_guest_widescreen() {
   // The picture is the guest's GP0 output replayed from the frame record; producers render the in-between.
   CHECK(runtime.interpolates());
   CHECK(game->core.rsub.mode.path() == RenderPath::Record);
-  CHECK(game->temporalPresentation == nullptr);
 
   const GuestWidescreenProjection *policy = runtime.guestWidescreenProjection();
   CHECK(policy != nullptr);
@@ -201,7 +200,7 @@ void test_runtime_selects_the_record_path_with_guest_widescreen() {
   CHECK(policy->presentationAspect(game->core) == PresentationAspect::Wide16x9);
 
   // The record canvas holds the margins: the guest keeps its retail 512-wide canvas and centre.
-  const GuestProjectionPlan wide = guest_projection_plan({
+  const GuestProjectionPlan wide = psx::present::guestProjectionPlan({
       .path = RenderPath::Record,
       .requested = policy->presentationAspect(game->core),
       .nativePresentation = {512, 240},
@@ -216,7 +215,7 @@ void test_runtime_selects_the_record_path_with_guest_widescreen() {
   CHECK_EQ(wide.projectionCenterX, 256);
 
   game->mods.aspect = ASPECT_4_3;
-  const GuestProjectionPlan standard = guest_projection_plan({
+  const GuestProjectionPlan standard = psx::present::guestProjectionPlan({
       .path = RenderPath::Record,
       .requested = policy->presentationAspect(game->core),
       .nativePresentation = {512, 240},
@@ -479,5 +478,5 @@ int main() {
   RUN(outer_loop_front_end_events_are_finite_and_non_fallthrough);
   RUN(resident_mode_selects_both_measured_owners);
   RUN(post_resident_routes_are_finite_state_transitions);
-  return pt_summary();
+  return psx::test::summary();
 }

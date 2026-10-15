@@ -150,8 +150,8 @@ void CoreFrameBoundary::advanceAudio() {
 void CoreFrameBoundary::present(int guestFields) {
   // A native movie's frame is delivered before this present; replay it on top of the guest's layers below.
   const bool movieOnScreen = core_.game->fmv.presenting();
-  // On the record path the presenter owns the in-between; there is no temporal decorator.
-  core_.game->presentation.commit(&core_, guestFields, nullptr);
+  // On the record path the presenter owns the in-between.
+  core_.game->presentation.commit(&core_, guestFields);
   // Packet spans live as long as the record: the OT the next update builds is walked before the next seal.
   core_.rsub.otAttr.beginLogicFrame(core_.game->timing.logicFrame);
   if (movieOnScreen) {

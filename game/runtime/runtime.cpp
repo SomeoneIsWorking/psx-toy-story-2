@@ -80,8 +80,9 @@ constexpr std::uint32_t kDmaCallbackTable = 0x8009FD60u;
 } // namespace
 
 Runtime::Runtime()
-    : libgte_({.setGeomOffset = 0x80083CD4u, .setGeomScreen = 0x80083CF4u}), vsync_(kVSync, facts::kVSyncQueryCounter),
-      libgpu_(kLibgpu), dmaCallbacks_(kDmaCallbackTable), libcd_(kLibcd, kLibcdWorkArea, kCdReadyCallback, {}),
+    : libgte_({.setGeomOffset = 0x80083CD4u, .setGeomScreen = 0x80083CF4u}),
+      vsync_({.entry = kVSync, .queryCounter = facts::kVSyncQueryCounter}), libgpu_(kLibgpu),
+      dmaCallbacks_(kDmaCallbackTable), libcd_(kLibcd, kLibcdWorkArea, kCdReadyCallback, {}),
       pad_({.slot0Buffer = PadOwner::kSlot0Buffer, .slot1Buffer = PadOwner::kSlot1Buffer}) {}
 
 void Runtime::startProgram(Core &core) {
@@ -136,18 +137,6 @@ bool Runtime::sealedFrameIsCut(Core &core) const {
 
 const GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {
   return &guestWidescreenPolicy();
-}
-
-RenderCapabilities Runtime::renderCapabilities() const {
-  // The picture is the guest's GP0 output replayed from the frame record.
-  return RenderCapabilities{
-      .defaultPath = RenderPath::Record,
-      .nativeRenderPath = false,
-  };
-}
-
-bool Runtime::guestVramIsPicture(const Game &) const {
-  return true;
 }
 
 const psx::game::HostIdentity *Runtime::hostIdentity() const {

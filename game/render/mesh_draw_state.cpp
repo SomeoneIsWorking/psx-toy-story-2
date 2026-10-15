@@ -59,9 +59,8 @@ bool draw(Core &core, const MeshState &state, const GteControl &control, psx::pr
   host.zero(state.header.tableBase, facts::kOrderingTableBuckets * sizeof(std::uint32_t));
   provideRanges(host, state.ranges, state.bytes);
   {
-    core.gte().bind();
-    const psx::present::GteGuard guard;
-    psx::present::writeGteControl(control);
+    const psx::present::GteGuard guard(core.gte());
+    psx::present::writeGteControl(core.gte(), control);
     if (!MeshDrawers::run(EmitMemory(core, host), state.header.call)) {
       return false;
     }
@@ -106,7 +105,7 @@ MeshDrawRecorder::MeshDrawRecorder(Core &core, const MeshDrawCall &call, const M
   header.meshBytes = inputs.meshBytes;
   header.primitives = inputs.primitives;
   header.ranges = static_cast<std::uint32_t>(inputs.ranges.size());
-  header.control = psx::present::readGteControl();
+  header.control = psx::present::readGteControl(core.gte());
   std::vector<std::byte> bytes = readRanges(guest, inputs.ranges);
   endLists(inputs, bytes);
   psx::present::StateWriter writer;

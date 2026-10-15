@@ -78,7 +78,7 @@ PartDrawRecorder::PartDrawRecorder(Core &core, const PartDrawCall &call) : call_
   header.cursor = cursor_;
   header.arenaBytes = inputs.packetBytes;
   header.ranges = static_cast<std::uint32_t>(inputs.ranges.size());
-  header.control = psx::present::readGteControl();
+  header.control = psx::present::readGteControl(core.gte());
   psx::present::StateWriter writer;
   writer.put(header);
   writer.putAll(std::span<const MemoryRange>(inputs.ranges));
@@ -127,9 +127,8 @@ void PartStateRender::render(const psx::present::StateInterval &states, psx::pre
   }
 
   {
-    core_.gte().bind();
-    const psx::present::GteGuard guard;
-    psx::present::writeGteControl(control);
+    const psx::present::GteGuard guard(core_.gte());
+    psx::present::writeGteControl(core_.gte(), control);
     PartFaceDrawers::run(EmitMemory(core_, host), state.header.call);
   }
   psx::present::emitHostOrderingTable(host,

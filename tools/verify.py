@@ -15,8 +15,8 @@ def main() -> int:
     owner = framework / "tools/port/consumer_verify.py"
     if not owner.is_file():
         print(
-            f"Toy Story 2 verification requires {owner}; resolve external/psxport "
-            "with tools/psxport_fetch.py or set PSXPORT_DIR",
+            f"Toy Story 2 verification requires {owner}; run `uv run --no-project https://raw.githubusercontent.com/SomeoneIsWorking/psxport/main/tools/psxport_fetch.py --auto` "
+            "or set PSXPORT_DIR",
             file=sys.stderr,
         )
         return 2

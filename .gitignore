@@ -15,7 +15,7 @@ scratch/
 .env
 
 # The framework. Not tracked: either a relative link to the workspace's live psxport checkout (local)
-# or a clone of its main (CI, fresh machine). Managed by tools/psxport_fetch.py.
+# or a clone of its main (CI, fresh machine). Made by psxport's tools/psxport_fetch.py.
 /external/psxport
 *.log
 

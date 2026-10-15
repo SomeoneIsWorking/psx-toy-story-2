@@ -37,5 +37,5 @@ int main() {
   RUN(the_exempt_mode_shows_the_levels_own_graphic);
   RUN(an_ordinary_level_start_shows_the_levels_own_graphic);
   RUN(only_those_two_exemptions_exist);
-  return pt_summary();
+  return psx::test::summary();
 }

@@ -23,19 +23,20 @@ constexpr std::uint32_t kFileLoader = 0x80082508u;
 constexpr std::uint32_t kSectorBytes = 2048u;
 
 std::vector<std::uint8_t> readDiscImage(Core &core, const OverlayModule &module) {
-  std::uint32_t firstSector = 0;
-  std::uint32_t fileBytes = 0;
   const std::string path{module.discPath};
-  if (!disc_find_file(&core.game->disc, path.c_str(), &firstSector, &fileBytes) || fileBytes != module.fileBytes) {
+  const std::optional<psx::cd::DiscFile> file = core.game->disc.findFile(path.c_str());
+  if (!file || file->size != module.fileBytes) {
     lucent::error(
         "ts2-overlay", "{} lookup refused: expected {} bytes at {}", module.identityName, module.fileBytes, path);
     std::abort();
   }
+  const std::uint32_t firstSector = file->lba;
+  const std::uint32_t fileBytes = file->size;
 
   std::vector<std::uint8_t> bytes(fileBytes);
   std::array<std::uint8_t, kSectorBytes> sector{};
   for (std::uint32_t offset = 0; offset < fileBytes; offset += kSectorBytes) {
-    if (!disc_read_sector(&core.game->disc, firstSector + offset / kSectorBytes, sector.data())) {
+    if (!core.game->disc.readSector(firstSector + offset / kSectorBytes, sector.data())) {
       lucent::error(
           "ts2-overlay", "{} sector {} could not be read", module.identityName, firstSector + offset / kSectorBytes);
       std::abort();

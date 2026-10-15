@@ -40,8 +40,7 @@ with no row runs on the framework alone.
 
 | hop | joins | owner |
 |---|---|---|
-| 1 | psxport F-RENDER.1 | `game/runtime/runtime.cpp:Runtime::renderCapabilities` — Record; guest VRAM is the picture |
-| 2 | psxport F-RENDER.2 | `game/runtime/runtime.cpp:Runtime::packetPool` — fixed base `0x801BBFEC`, stride `0x214F4` |
+| 1 | psxport F-RENDER.2 | `game/runtime/runtime.cpp:Runtime::packetPool` — fixed base `0x801BBFEC`, stride `0x214F4` |
 
 ## F-FPS60
 
