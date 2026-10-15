@@ -2,6 +2,7 @@
 #pragma once
 
 #include "render/mesh_draw_call.h"
+#include "state_producer.h"
 
 #include <cstdint>
 
@@ -18,9 +19,10 @@ public:
   inline static constexpr std::uint32_t kInstanceSlotTable = ts2::kInstanceSlotTable;
   inline static constexpr std::uint32_t kSlotPacketBase = ts2::kSlotPacketBase;
 
-  static void install(Core &core);
+  static void install(Core &core, psx::present::StateProducerTable &renders);
 
-  static std::uint32_t slotEntries(Core &core, std::uint32_t submitter, std::uint32_t mesh);
+  // The face entries a call of `Submitter` publishes for `mesh`.
+  template <std::uint32_t Submitter> static std::uint32_t slotEntries(Core &core, std::uint32_t mesh);
 };
 
 } // namespace ts2

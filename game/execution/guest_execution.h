@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -37,7 +38,9 @@ std::uint32_t callFiniteGuestToReturn(Core &core, const GuestCall &call, std::ui
 // Publish `$a0`-`$a3` and `$sp + 16`; `ResumableGuestCall::begin` takes only entry and return address.
 void publishCallArguments(Core &core, const GuestCall &call);
 
-// Read a NUL-terminated string from guest RAM; no terminator within `maxBytes` reads as empty.
-std::string guestString(Core &core, std::uint32_t address, std::size_t maxBytes);
+inline constexpr std::size_t kMaxGuestPath = 128u;
+
+// Read a NUL-terminated guest file path; no terminator within `kMaxGuestPath` bytes reads as empty.
+std::string guestPath(Core &core, std::uint32_t address);
 
 } // namespace ts2

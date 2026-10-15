@@ -34,8 +34,8 @@ modules do not read environment variables. Product diagnostics use Lucent; do no
 
 ## Evidence and workflow
 
-There is no decompilation of this game, so every address in `game/facts/guest_facts.h` comes out of
-Ghidra on the exact executable. Recovering more of them is what `tools/ram_image.py`,
+There is no decompilation of this game, so every address the title names comes out of Ghidra on the
+exact executable. Recovering more of them is what `tools/ram_image.py`,
 `tools/ghidra_xref.py` and `tools/re_xref.py` are for: build the RAM image, import it, xref a guest
 address, and record what the bytes say. Preserve exact-image evidence and
 oracle scenarios. Static analysis may produce symbols and non-executable metadata; it may not emit

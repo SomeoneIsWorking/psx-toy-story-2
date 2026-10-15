@@ -64,10 +64,14 @@ protected:
   bool settleChildren();
   bool fan() const;
 
-  void storeScreenMask(std::uint32_t flags,
-                       std::uint32_t xCentre,
-                       std::uint32_t yCentre,
-                       std::span<const std::uint32_t> points);
+  // The words holding the centre's x (low half) and y (high half), and the axes (x 2, y 1) it already shows on
+  // screen.
+  struct ScreenCentre {
+    std::uint32_t x = 0;
+    std::uint32_t y = 0;
+    std::uint32_t shownAxes = 0;
+  };
+  void storeScreenMask(ScreenCentre centre, std::span<const std::uint32_t> points);
   bool visible(std::uint32_t mask) const;
   std::uint32_t depth(unsigned point) const;
   std::uint32_t vertexOf(unsigned point) const;
@@ -76,7 +80,12 @@ protected:
   void cullQuarter(unsigned i);
   bool subdivideChild(unsigned i, std::span<const unsigned> ring);
   void releaseWhole(unsigned i);
-  void link(std::uint32_t packet, std::uint32_t bucket, std::uint32_t command, std::span<const unsigned> corners);
+  // A child's packet and the ordering-table entry its depth selects.
+  struct ChildLink {
+    std::uint32_t packet = 0;
+    std::uint32_t bucket = 0;
+  };
+  void link(ChildLink child, std::uint32_t command, std::span<const unsigned> corners);
 
   // Fan.
   void releaseSpare();

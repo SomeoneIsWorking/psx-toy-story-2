@@ -38,10 +38,7 @@ class MeshStateRender final : public psx::present::StateProducer {
 public:
   explicit MeshStateRender(Core &core) : core_(core) {}
 
-  void render(std::span<const std::byte> from,
-              std::span<const std::byte> to,
-              float t,
-              psx::present::PrimitiveSink &sink) const override;
+  void render(const psx::present::StateInterval &states, psx::present::PrimitiveSink &sink) const override;
 
 private:
   Core &core_;

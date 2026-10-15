@@ -96,8 +96,8 @@ std::optional<Gathered> Gather::run(std::optional<std::uint32_t> freeIds) {
       return std::nullopt;
     }
   }
-  const std::uint32_t tables = m_.mem_r32(kBucketTables);
-  const std::uint32_t bucketBytes = m_.mem_r32(kOtzLimit) << 2;
+  const std::uint32_t tables = m_.mem_r32(facts::kBucketOffsets);
+  const std::uint32_t bucketBytes = m_.mem_r32(facts::kDepthLimit) << 2;
   if (bucketBytes > kMaxBucketBytes) {
     return std::nullopt;
   }
@@ -106,11 +106,11 @@ std::optional<Gathered> Gather::run(std::optional<std::uint32_t> freeIds) {
   const std::uint32_t table = m_.mem_r32(kInstanceSlotTable);
   add(mesh, stream->end - mesh);
   add(call_.args[3] + 0xCu, sizeof(std::uint32_t));
-  for (const std::uint32_t global : {kBucketTables, kOtzLimit, kInstanceSlotTable}) {
+  for (const std::uint32_t global : {facts::kBucketOffsets, facts::kDepthLimit, kInstanceSlotTable}) {
     add(global, sizeof(std::uint32_t));
   }
   add(tables + (call_.args[2] << 2), bucketBytes + sizeof(std::uint16_t));
-  add(kTexturePages, kTexturePageBytes);
+  add(facts::kTexturePages, facts::kTexturePageTableBytes);
   add(table, stream->primitives * 2u);
   add(kMeshScratch, kMeshScratchBytes);
 
@@ -164,6 +164,7 @@ std::optional<std::uint32_t> trial(const EmitMemory &guest, const MeshDrawCall &
   }
   host.zero(StaticMeshDrawer::orderingTable(guest), facts::kOrderingTableBuckets * sizeof(std::uint32_t));
   const EmitMemory over(guest.core(), host);
+  guest.core().gte().bind();
   const psx::present::GteGuard gte;
   if (!StaticMeshDrawer::run(over, call)) {
     return std::nullopt;
@@ -182,7 +183,7 @@ std::optional<MeshDrawInputs> StaticMeshDrawer::plan(const EmitMemory &memory, c
   if (!used || *used >= wide->freeIds) {
     return std::nullopt;
   }
-  std::optional<Gathered> exact = Gather(memory, call).run(*used);
+  std::optional<Gathered> exact = Gather(memory, call).run(used);
   if (!exact) {
     return std::nullopt;
   }

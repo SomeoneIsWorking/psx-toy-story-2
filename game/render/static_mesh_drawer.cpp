@@ -1,5 +1,6 @@
 #include "render/static_mesh_drawer.h"
 
+#include "facts/guest_facts.h"
 #include "gte_registers.h"
 #include "render/mesh_cpu.h"
 #include "render/mesh_format.h"
@@ -77,7 +78,7 @@ public:
   std::optional<MeshDrawResult> run();
 
 private:
-  enum class Outcome { Culled, Dropped, Handled, Linked };
+  enum class Outcome : std::uint8_t { Culled, Dropped, Handled, Linked };
 
   void enter();
   void selectTexture(std::uint32_t word);
@@ -118,9 +119,9 @@ void Walk::enter() {
   c.s0 = c.a0 + c.t9;
   c.sw(kDrawn, 1);
   c.sw(kReturn, c.ra);
-  c.s1 = c.lw(kBucketTables) + (c.a2 << 2);
+  c.s1 = c.lw(facts::kBucketOffsets) + (c.a2 << 2);
   c.t8 = c.lw(kInstanceSlotTable);
-  c.s5 = c.lw(kOtzLimit) << 2;
+  c.s5 = c.lw(facts::kDepthLimit) << 2;
   c.s3 = c.lw(kSlotPacketBase);
   c.a2 = c.lw(kOrderingTable);
   c.a1 <<= 2;
@@ -134,7 +135,7 @@ void Walk::selectTexture(std::uint32_t word) {
   MeshCpu &c = c_;
   const std::uint32_t select = setTexturePage(m_, static_cast<std::int32_t>(word));
   c.sh(kLodEnabled, select < 0x40u ? 1u : 0u);
-  c.t3 = (c.lw(kTexturePages + select) & 0xFFFFu) + (word & 0x60u);
+  c.t3 = (c.lw(facts::kTexturePages + select) & 0xFFFFu) + (word & 0x60u);
 }
 
 std::optional<MeshDrawResult> Walk::run() {
@@ -196,8 +197,8 @@ void Walk::projectQuad(const Handler &handler, std::uint32_t stride) {
   MeshCpu &c = c_;
   c.t2 = c.lw(kCorners + 8u);
   c.t3 = c.lw(kCorners + 12u);
-  gteWrite(psx::gte::kVxy0, c.lw(c.t2));
-  gteWrite(psx::gte::kVz0, c.lw(c.t2 + 4u));
+  c.gteWrite(psx::gte::kVxy0, c.lw(c.t2));
+  c.gteWrite(psx::gte::kVz0, c.lw(c.t2 + 4u));
   c.s2 -= 1u;
   c.t1 = c.lw(kCorners + 4u);
   c.gteOp(psx::gte::kRtps);
@@ -207,22 +208,22 @@ void Walk::projectQuad(const Handler &handler, std::uint32_t stride) {
   c.a3 = c.lh(c.t1 + 4u);
   c.t9 = c.lh(c.t8);
   c.t0 = c.lw(kCorners);
-  gteWrite(psx::gte::kVxy0, c.t6);
-  gteWrite(psx::gte::kVz0, c.t7);
-  gteWrite(psx::gte::kVxy1, c.t4);
-  gteWrite(psx::gte::kVz1, c.a3);
-  gteWrite(psx::gte::kVxy2, c.lw(c.t0));
-  gteWrite(psx::gte::kVz2, c.lw(c.t0 + 4u));
-  c.t6 = gteRead(psx::gte::kSxy2);
+  c.gteWrite(psx::gte::kVxy0, c.t6);
+  c.gteWrite(psx::gte::kVz0, c.t7);
+  c.gteWrite(psx::gte::kVxy1, c.t4);
+  c.gteWrite(psx::gte::kVz1, c.a3);
+  c.gteWrite(psx::gte::kVxy2, c.lw(c.t0));
+  c.gteWrite(psx::gte::kVz2, c.lw(c.t0 + 4u));
+  c.t6 = c.gteRead(psx::gte::kSxy2);
   c.v1 = c.lw(kRowMax);
   c.at = c.lw(kRowMin);
   c.gteOp(psx::gte::kRtpt);
   stash(c.lw(c.s0 + stride), true);
   c.sw(kVertices + 12u, c.t3);
   c.sw(kVertices + 8u, c.t2);
-  c.t4 = gteRead(psx::gte::kSxy2);
-  c.t5 = gteRead(psx::gte::kSxy1);
-  c.t7 = gteRead(psx::gte::kSxy0);
+  c.t4 = c.gteRead(psx::gte::kSxy2);
+  c.t5 = c.gteRead(psx::gte::kSxy1);
+  c.t7 = c.gteRead(psx::gte::kSxy0);
   if (!handler.noCull) {
     c.gteOp(psx::gte::kNclip);
   }
@@ -233,12 +234,12 @@ void Walk::projectTriangle(std::uint32_t stride) {
   c.t0 = c.lw(kCorners);
   c.t1 = c.lw(kCorners + 4u);
   c.t2 = c.lw(kCorners + 8u);
-  gteWrite(psx::gte::kVxy2, c.lw(c.t0));
-  gteWrite(psx::gte::kVz2, c.lw(c.t0 + 4u));
-  gteWrite(psx::gte::kVxy1, c.lw(c.t1));
-  gteWrite(psx::gte::kVz1, c.lw(c.t1 + 4u));
-  gteWrite(psx::gte::kVxy0, c.lw(c.t2));
-  gteWrite(psx::gte::kVz0, c.lw(c.t2 + 4u));
+  c.gteWrite(psx::gte::kVxy2, c.lw(c.t0));
+  c.gteWrite(psx::gte::kVz2, c.lw(c.t0 + 4u));
+  c.gteWrite(psx::gte::kVxy1, c.lw(c.t1));
+  c.gteWrite(psx::gte::kVz1, c.lw(c.t1 + 4u));
+  c.gteWrite(psx::gte::kVxy0, c.lw(c.t2));
+  c.gteWrite(psx::gte::kVz0, c.lw(c.t2 + 4u));
   c.s2 -= 1u;
   c.gteOp(psx::gte::kRtpt);
   c.t9 = c.lh(c.t8);
@@ -246,9 +247,9 @@ void Walk::projectTriangle(std::uint32_t stride) {
   c.sw(kVertices, c.t0);
   c.sw(kVertices + 4u, c.t1);
   c.sw(kVertices + 8u, c.t2);
-  c.t4 = gteRead(psx::gte::kSxy2);
-  c.t5 = gteRead(psx::gte::kSxy1);
-  c.t6 = gteRead(psx::gte::kSxy0);
+  c.t4 = c.gteRead(psx::gte::kSxy2);
+  c.t5 = c.gteRead(psx::gte::kSxy1);
+  c.t6 = c.gteRead(psx::gte::kSxy0);
   c.gteOp(psx::gte::kNclip);
   c.at = c.lw(kRowMin);
   c.v1 = c.lw(kRowMax);
@@ -274,17 +275,17 @@ bool Walk::culledQuad(const Handler &handler) {
   if (handler.noCull) {
     c.gteOp(psx::gte::kAvsz4);
     c.a3 = c.lw(kNearLimit);
-    c.at = gteRead(psx::gte::kOtz);
+    c.at = c.gteRead(psx::gte::kOtz);
     return false;
   }
-  c.v0 = gteRead(psx::gte::kMac0);
+  c.v0 = c.gteRead(psx::gte::kMac0);
   c.gteOp(psx::gte::kAvsz4);
   c.a3 = c.lw(kNearLimit);
-  gteWrite(psx::gte::kSxy2, c.t6);
-  c.at = gteRead(psx::gte::kOtz);
+  c.gteWrite(psx::gte::kSxy2, c.t6);
+  c.at = c.gteRead(psx::gte::kOtz);
   if (negative(c.v0)) {
     c.gteOp(psx::gte::kNclip);
-    c.v1 = gteRead(psx::gte::kMac0);
+    c.v1 = c.gteRead(psx::gte::kMac0);
     if (!negative(c.v1)) {
       return true;
     }
@@ -298,7 +299,7 @@ bool Walk::culledTriangle() {
   if (rowsOutside(c, corners)) {
     return true;
   }
-  c.at = gteRead(psx::gte::kMac0);
+  c.at = c.gteRead(psx::gte::kMac0);
   c.a3 = c.t6 << 16;
   if (negative(c.at)) {
     return true;
@@ -314,7 +315,7 @@ bool Walk::culledTriangle() {
   }
   c.gteOp(psx::gte::kAvsz3);
   c.a3 = c.lw(kNearLimit);
-  c.at = gteRead(psx::gte::kOtz);
+  c.at = c.gteRead(psx::gte::kOtz);
   return false;
 }
 
@@ -498,7 +499,7 @@ Walk::Outcome Walk::place(const Handler &handler) {
     c.v0 = c.v1 + c.t9;
     c.v1 += c.s3;
     const std::array<std::uint32_t, 4> corners{c.t0, c.t1, c.t2, c.t3};
-    fillNewSlot(m_, handler.shape, c.s0, corners, c.a3, c.s3);
+    fillNewSlot(m_, handler.shape, c.s0, corners, {.index = c.a3, .packets = c.s3});
     c.t3 = fillLeftover(handler.shape, corners);
   }
   c.sb(kLodChanged, 0);

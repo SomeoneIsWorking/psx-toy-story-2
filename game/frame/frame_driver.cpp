@@ -10,7 +10,7 @@
 namespace ts2 {
 namespace {
 
-class ToyStory2FrameDriver final : public FrameDriver {
+class ToyStory2FrameDriver final : public psx::game::FrameDriver {
 public:
   explicit ToyStory2FrameDriver(Core &core) : state_(core) {}
 
@@ -25,7 +25,7 @@ private:
 
 } // namespace
 
-std::unique_ptr<FrameDriver> createFrameDriver(Game &game) {
+std::unique_ptr<psx::game::FrameDriver> createFrameDriver(Game &game) {
   return std::make_unique<ToyStory2FrameDriver>(game.core);
 }
 

@@ -5,10 +5,9 @@
 #include "frame/resident_frame.h"
 #include "game.h"
 #include "game_runtime.h"
-#include "render_capabilities.h"
 #include "render_mode.h"
-#include "runtime/toystory2_runtime.h"
 #include "testutil.h"
+#include "title_game.h"
 #include "widescreen/guest_widescreen.h"
 
 #include <memory>
@@ -156,8 +155,7 @@ public:
   std::vector<std::string> operations;
 };
 
-} // namespace
-static void test_measured_resident_order_has_one_two_field_present() {
+void test_measured_resident_order_has_one_two_field_present() {
   RecordingBoundary boundary;
   ts2::stepResidentFrame(boundary, 37);
 
@@ -169,7 +167,7 @@ static void test_measured_resident_order_has_one_two_field_present() {
   }
 }
 
-static void test_transition_frame_owns_one_field() {
+void test_transition_frame_owns_one_field() {
   RecordingBoundary boundary;
   boundary.fieldQuota = 1;
   ts2::stepResidentFrame(boundary, 9);
@@ -179,25 +177,21 @@ static void test_transition_frame_owns_one_field() {
   CHECK(boundary.operations == expected);
 }
 
-static void test_runtime_supplies_title_frame_driver() {
-  static ts2::ToyStory2Runtime runtime;
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
+void test_runtime_supplies_title_frame_driver() {
+  ts2::test::TitleGame title;
 
-  CHECK(game->runtime == &runtime);
-  CHECK(game->frameDriver != nullptr);
+  CHECK(&title.game().runtime == &title.runtime());
+  CHECK(title.game().frameDriver != nullptr);
+  CHECK(title.game().sessionState != nullptr);
 }
 
-static void test_runtime_selects_the_record_path_with_guest_widescreen() {
-  static ts2::ToyStory2Runtime runtime;
-  psxport_install_game(runtime);
-  auto game = std::make_unique<Game>();
+void test_runtime_selects_the_record_path_with_guest_widescreen() {
+  ts2::test::TitleGame title;
+  const ts2::ToyStory2Runtime &runtime = title.runtime();
+  Game *game = &title.game();
 
-  // The picture is the guest's GP0 output replayed from the frame record; producers key the in-between.
-  const RenderCapabilities capabilities = runtime.renderCapabilities();
-  CHECK(capabilities.defaultPath == RenderPath::Record);
-  CHECK(!capabilities.nativeRenderPath);
-  CHECK(capabilities.temporalInterpolation);
+  // The picture is the guest's GP0 output replayed from the frame record; producers render the in-between.
+  CHECK(runtime.interpolates());
   CHECK(game->core.rsub.mode.path() == RenderPath::Record);
   CHECK(game->temporalPresentation == nullptr);
 
@@ -234,7 +228,7 @@ static void test_runtime_selects_the_record_path_with_guest_widescreen() {
   CHECK_EQ(standard.presentationHorizontalMargin, 0);
 }
 
-static void test_outer_loop_reaches_normal_resident_in_finite_steps() {
+void test_outer_loop_reaches_normal_resident_in_finite_steps() {
   ts2::OuterLoopState state;
   RecordingOuterLoop boundary;
 
@@ -261,7 +255,7 @@ static void test_outer_loop_reaches_normal_resident_in_finite_steps() {
   CHECK(boundary.operations == expected);
 }
 
-static void test_the_level_transition_spans_fields_and_then_prepares_the_next_level() {
+void test_the_level_transition_spans_fields_and_then_prepares_the_next_level() {
   ts2::OuterLoopState state{ts2::OuterLoopPhase::resident};
   RecordingOuterLoop boundary;
   boundary.residentIsActive = false;
@@ -285,7 +279,7 @@ static void test_the_level_transition_spans_fields_and_then_prepares_the_next_le
   CHECK(boundary.operations.back() == "level-transition");
 }
 
-static void test_a_finished_boot_countdown_at_the_level_transition_ends_the_game() {
+void test_a_finished_boot_countdown_at_the_level_transition_ends_the_game() {
   ts2::OuterLoopState state{ts2::OuterLoopPhase::levelTransition};
   RecordingOuterLoop boundary;
   boundary.levelTransitionEvent = 0;
@@ -294,7 +288,7 @@ static void test_a_finished_boot_countdown_at_the_level_transition_ends_the_game
   CHECK(boundary.operations == (std::vector<std::string>{"level-transition", "shutdown"}));
 }
 
-static void test_intro_movies_yield_one_field_per_step_until_finished() {
+void test_intro_movies_yield_one_field_per_step_until_finished() {
   ts2::OuterLoopState state{ts2::OuterLoopPhase::introMovies};
   RecordingOuterLoop boundary;
   boundary.introMoviesFinished = false;
@@ -312,7 +306,7 @@ static void test_intro_movies_yield_one_field_per_step_until_finished() {
   CHECK_EQ(boundary.operations.size(), 5u);
 }
 
-static void test_backing_out_of_the_selection_screen_reenters_the_front_end_poll() {
+void test_backing_out_of_the_selection_screen_reenters_the_front_end_poll() {
   ts2::OuterLoopState state{ts2::OuterLoopPhase::interactiveSelection};
   RecordingOuterLoop boundary;
   boundary.selectionProgress = ts2::SelectionProgress::backToFrontEnd;
@@ -322,7 +316,7 @@ static void test_backing_out_of_the_selection_screen_reenters_the_front_end_poll
   CHECK(boundary.operations == (std::vector<std::string>{"interactive-step"}));
 }
 
-static void test_front_end_poll_spans_fields_without_leaving_its_phase_until_it_returns() {
+void test_front_end_poll_spans_fields_without_leaving_its_phase_until_it_returns() {
   ts2::OuterLoopState state{ts2::OuterLoopPhase::pollFrontEnd};
   RecordingOuterLoop boundary;
   boundary.event = 1;
@@ -340,7 +334,7 @@ static void test_front_end_poll_spans_fields_without_leaving_its_phase_until_it_
   CHECK(boundary.operations[4] == "playback:off");
 }
 
-static void test_outer_loop_interactive_path_yields_between_selection_iterations() {
+void test_outer_loop_interactive_path_yields_between_selection_iterations() {
   ts2::OuterLoopState state{ts2::OuterLoopPhase::pollFrontEnd};
   RecordingOuterLoop boundary;
   boundary.event = 1;
@@ -360,7 +354,7 @@ static void test_outer_loop_interactive_path_yields_between_selection_iterations
   CHECK(boundary.operations == expected);
 }
 
-static void test_resident_preparation_yields_and_can_finish() {
+void test_resident_preparation_yields_and_can_finish() {
   ts2::OuterLoopState state{ts2::OuterLoopPhase::residentSetup};
   RecordingOuterLoop boundary;
   boundary.preparationProgress = ts2::ResidentPreparationProgress::pending;
@@ -375,12 +369,12 @@ static void test_resident_preparation_yields_and_can_finish() {
   CHECK(boundary.operations == std::vector<std::string>({"prepare-resident", "shutdown"}));
 }
 
-static void test_outer_loop_front_end_events_are_finite_and_non_fallthrough() {
+void test_outer_loop_front_end_events_are_finite_and_non_fallthrough() {
   struct EventExpectation {
     int event;
     const char *operation;
   };
-  static constexpr EventExpectation expectations[] = {{2, "memory-dialog"}, {8, "restart"}};
+  constexpr EventExpectation expectations[] = {{2, "memory-dialog"}, {8, "restart"}};
 
   for (const auto &expectation : expectations) {
     ts2::OuterLoopState state{ts2::OuterLoopPhase::pollFrontEnd};
@@ -398,7 +392,7 @@ static void test_outer_loop_front_end_events_are_finite_and_non_fallthrough() {
 
   // Events 3 and 4 are modal overlay screens: one guest call spanning display fields, so the poll stays open
   // until the screen returns.
-  static constexpr EventExpectation overlayExpectations[] = {{3, "begin-check-save"}, {4, "begin-load-save"}};
+  constexpr EventExpectation overlayExpectations[] = {{3, "begin-check-save"}, {4, "begin-load-save"}};
 
   for (const auto &expectation : overlayExpectations) {
     ts2::OuterLoopState state{ts2::OuterLoopPhase::pollFrontEnd};
@@ -432,17 +426,17 @@ static void test_outer_loop_front_end_events_are_finite_and_non_fallthrough() {
   CHECK(boundary.operations == std::vector<std::string>({"poll", "shutdown"}));
 }
 
-static void test_resident_mode_selects_both_measured_owners() {
+void test_resident_mode_selects_both_measured_owners() {
   CHECK_EQ(ts2::residentUpdateAddress(false), 0x8007B254u);
   CHECK_EQ(ts2::residentUpdateAddress(true), 0x8007B850u);
 }
 
-static void test_post_resident_routes_are_finite_state_transitions() {
+void test_post_resident_routes_are_finite_state_transitions() {
   struct ExpectedTransition {
     ts2::PostResidentTransition result;
     ts2::OuterLoopPhase phase;
   };
-  static constexpr ExpectedTransition transitions[] = {
+  constexpr ExpectedTransition transitions[] = {
       {ts2::PostResidentTransition::coldRestart, ts2::OuterLoopPhase::coldRestart},
       {ts2::PostResidentTransition::frontEndSetup, ts2::OuterLoopPhase::frontEndSetup},
       {ts2::PostResidentTransition::residentSetup, ts2::OuterLoopPhase::residentSetup},
@@ -466,6 +460,8 @@ static void test_post_resident_routes_are_finite_state_transitions() {
     }
   }
 }
+
+} // namespace
 
 int main() {
   RUN(measured_resident_order_has_one_two_field_present);

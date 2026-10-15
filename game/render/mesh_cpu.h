@@ -3,6 +3,7 @@
 // scratchpad stack, the screen-space temporaries and the returned v1 all show those values.
 #pragma once
 
+#include "core.h"
 #include "emit_memory.h"
 #include "render/mesh_culling.h"
 #include "render/mesh_scratch.h"
@@ -63,8 +64,14 @@ public:
     return static_cast<std::int32_t>(v);
   }
 
+  std::uint32_t gteRead(std::uint32_t reg) const {
+    return m_.core().gte().readData(reg);
+  }
+  void gteWrite(std::uint32_t reg, std::uint32_t value) const {
+    m_.core().gte().writeData(reg, value);
+  }
   void gteOp(std::uint32_t command) const {
-    gte_op(&m_.core(), command);
+    m_.core().gte().execute(command);
   }
 
 private:

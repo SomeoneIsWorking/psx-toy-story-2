@@ -24,11 +24,17 @@ struct OverlayModule {
   std::string_view retailSha256;
 };
 
+// The guest RAM window a slot's images load into.
+struct OverlayWindow {
+  std::uint32_t loadAddress = 0;
+  std::uint32_t bytes = 0;
+};
+
 // Code-image owner of one fixed-address slot: one active identity, registered only after the loaded bytes
 // equal the disc file, retired (with translated-code invalidation) when the slot is reloaded.
 class OverlaySlot {
 public:
-  OverlaySlot(std::uint32_t loadAddress, std::uint32_t windowBytes, std::vector<OverlayModule> modules);
+  OverlaySlot(OverlayWindow window, std::vector<OverlayModule> modules);
 
   std::uint32_t loadAddress() const {
     return loadAddress_;

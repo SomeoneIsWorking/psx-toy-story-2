@@ -21,7 +21,7 @@ runtime.
 - status: re-verified
 - deps: RE-00
 - evidence: C009 and I008. The identity-checked PS-X EXE yields 43 walked retail instructions and derives BSS `[0x800A1070,0x800D12C0)`, stack `0x80200000`, heap base `0x800D12C0`, heap size `0x126D40`, gp `0x800A0CD8`, libc init `0x80089344`, game main `0x8007A9E8`, and entry `0x80082D60`.
-- where: `game/facts/guest_facts.h`; `tools/extract_exe.py`
+- where: `kCrt0` in `game/runtime/toystory2_runtime.cpp`; `tools/extract_exe.py`
 - gap: none for the exact boot group
 - notes: The verifier consumes psxport's neutral PS-X EXE parser, not an execution generator.
 
@@ -79,7 +79,7 @@ runtime.
 - status: re-verified
 - deps: RE-00
 - evidence: C010, C014 and I009. LEVEL alternatives load at `0x800D12C0`; MEMORY and FMV reuse `0x800D5D20`; FMV entry `0x800D6628` is file+`0x908` and begins prologue word `0x27BDFF10`. The corpus contains 22 code modules.
-- where: `game/facts/guest_facts.h`
+- where: `game/overlay/level_slot_image.*`, `game/overlay/shared_slot_image.*`, `game/overlay/overlay_images.*`
 - gap: none for the proven module set and two reused physical slots
 - notes: Runtime identity is authenticated image, generation, and address; address alone is ambiguous.
 
@@ -89,7 +89,7 @@ runtime.
 - status: re-verified
 - deps: RE-01
 - evidence: C010, C012 and the whole-file read decompiled. The chain is `0x80082508` (normalize, upper case, strip the ISO9660 version suffix) → `0x80082728` (clear `DAT_800A15A8`, then two `do { } while` loops around the read) → `0x80082608` (clear `DAT_800A1034`/`DAT_800A1588`, `CdInit(0xB,0,0)` at `0x80090D40`, spin on `CdSearchFile` `0x80092AE8`, `CdRead` `0x80093AF0`, spin on `0x80093BF4`, return the `CdlFILE` size or 1 for an empty file). `0x80082608` has exactly one caller (`0x80082750`), so the two paths are one path. `0x80082648` and both `0x80082750`/`0x8008276C` loops are the design's three spin sites and all three now sit inside native owners. `0x8007F174` is the fourth, in the file *processor*: decompiled whole, the delay slot at `0x8007F170` stores zero into `$s0` and the branch at `0x8007F180` is `beqz $s0`, so `do { VSync(0); break 1; } while (true)` at `0x8007F174` is the routine's own assertion that the searched bank fits the window `(v + 0x7FF) & ~0x7FF < 0x4001` it accepts — unbounded in retail too, and its sibling legs report through the game's own two messages and return.
-- where: `game/cd/file_transfer.h` (`ts2::cd::FileTransfer`, registered at `0x80082608`, and the bounded retry policy at `0x80082728`); `game/audio/sound_bank.h` (`ts2::audio`, registered at `0x8007F108`, the guest's own body run through the framework's bounded resume loop so the assertion costs bounded fields and ends as a named refusal); `game/cd/stock_libcd_layout.h`
+- where: `game/cd/file_transfer.h` (`ts2::cd::FileTransfer`, registered at `0x80082608`, and the bounded retry policy at `0x80082728`); `game/audio/sound_bank.h` (`ts2::audio`, registered at `0x8007F108`, the guest's own body run through the framework's bounded resume loop so the assertion costs bounded fields and ends as a named refusal); the stock libcd entries bound as psxport's `GuestInterruptLibcd` in `game/runtime/toystory2_runtime.cpp`
 - gap: the play loop's entry state (the eleven stores at `0x8007AE20`, the exit countdown and `[0x800A1430] = [0x800C166C] << 1`, the fade) now runs as the guest's own continuation rather than a replay, so a payload comparison against retail is available as evidence for the level start itself.
 - notes: Do not special-case a BIOS call or fabricate load completion. The native read keeps the guest's CD-mode publication (`0x80090D40(0xB,0,0)`) so the parts of the product that still stream through the guest's CD keep working.
 
@@ -100,7 +100,7 @@ runtime.
 - deps: RE-01
 - evidence: Resident buffers are `0x801BBD28` and `0x801DD21C`; packet pools begin at `0x801BBFEC` and `0x801DD4E0`. Camera producer `0x8002C848`, scene root `0x8002A070`, visibility lists `0x800BB4D8`/`0x800C0AB0`, owner `0x8002622C`, and mesh submitter `0x800100E4` are grounded from binary and earlier reached observations. The mesh submission WINDOW is the guest's own screen rectangle: `SetScreenRect` at `0x80010000` (10 instructions, stores `$a0..$a3 << 16` to `0x1F800060/64/68/6C`), read back by its twin `0x8001002C`, with four publishers — renderer `0x8002A404` and `0x8002A6C0`, submitter `0x8002638C`, second submitter `0x80026E84`.
 - evidence (record path):
-  - Frame timing: the OT built in update N is drawn by the deferred field service `0x80021028` → `0x8003A888` during frame N+1. `0x8003A888` then swaps the buffers and resets the OT `gp+0x930 = buf+0x1924` and the pool `gp+0x3E4 = buf+0x2C4`.
+  - Frame timing: the OT built in update N is drawn by the deferred field service `0x80021028` → `0x8003A888` during frame N+1. `0x8003A888` then swaps the buffers and resets the packet cursor `gp+0x930 = buf+0x1924` and the OT pointer `gp+0x3E4 = buf+0x2C4` (bucket 4).
   - Slot scheme of the static submitter `0x800100E4`: each instance's per-face table is published at `*0x800A11CC` (u16 per entry, 0 = none). The packet is `slot*4 + *0x1F800044`, the current buffer's slot array, with a copy at `*0x1F800048`. A face keeps its slot while it stays visible, and the guest relinks that packet every frame. Opcodes 8..15 take two entries per primitive.
   - The rigid drawer `0x80017FF8` uses the same scheme with one entry per primitive, positive headers only.
   - Both bodies are ported (`game/render/rigid_mesh_drawer.*`, `static_mesh_drawer.*`, `mesh_cpu.h`). Static dispatch table `0x800103EC`: ops 0/4 `0x80014838`, 1/5 `0x80013F20`, 2/6 `0x80014354`, 3/7 `0x80013AFC`, 8/12 `0x80012FE0`, 9/13 `0x80011BD8`, 10/14 `0x800124E8`, 11/15 `0x800112D8`, 16/20 `0x800104EC`, 17/21 `0x80010C64`, 18/22 `0x800108B8`, 19/23 `0x80010F8C`, >=24 exit `0x800112A8`; rigid jump table `0x80018114`. Subdividers: quad textured `0x80014D3C`, triangle textured `0x80016690`, quad plain `0x8001A4D4`, triangle plain `0x8001B8AC`; release helpers `0x80017B34/6C`, `0x80017ECC/F04` use the scratch software stack at `0x1F800360`.
@@ -108,7 +108,7 @@ runtime.
   - A negative header (`<= 0`) means auxiliary vertex records: a prologue normalises rotation rows 1-3 (`0x80083944`), writes light control registers 16..20, clears the cache at `0x800B27A8`, then command 0 and 12, terminal 31. Not ported (issue 41).
   - The rigid and static column-cull branches carry a depth-average GTE op (AVSZ) in the branch delay slot, so OTZ is written for culled primitives too.
   - Faces flagged at packet `+0x27` are subdivided through `0x80017B34` → `0x80017B6C`, recursive, with sub-packets from a sequential cursor. On the Andy's House route over 360 frames no slot was claimed twice in a frame and no face changed slot.
-  - The object renderer `0x8002518C` and the hierarchical drawers `0x8002B6F0`/`0x8002AC40` allocate packets one after another from the pool cursor `0x800A1608` and carry no per-face identity (issue 40).
+  - The object renderer `0x8002518C` and the hierarchical drawers `0x8002B6F0`/`0x8002AC40` allocate packets one after another from the pool cursor `0x800A1608` and carry no per-face identity of their own (issue 40); the ported `0x8002AC40` is keyed by the world object record `0x8002622C` holds in s7.
 - where: `game/render/slot_mesh_producers.*`; `game/render/mesh_format.*`; `game/widescreen/resident_widescreen.*`; `game/frame/frame_cut.*`
 - gap: The object-renderer drawers and the subdivider have no key (issues 40, 41). The per-object screen box the submitter publishes is produced by the visibility leaf `0x80027AF0`, which clamps each projected corner to the console frame (`slti $v0,$v0,0x200` at `0x800280D4`, `$s6 = 0x200` stored at `0x800280F8`) BEFORE intersecting with the caller's rectangle, so that leaf's rectangle argument alone cannot keep a margin object submitted; the publisher at `0x80010000` is the seam the widened frame has to cross. That clamp is now bypassed for the widened frame, so what remains visible in the right margin is measured scene content: the under-bed void is `(0,0,0)` inside the console frame at 4:3 too, and the region past the floor mesh's own edge samples the `(33,33,33)` backdrop, which is what "no prim covers this pixel" rasterizes to once the only horizontal clip in the chain is open. The camera producer `0x8002C848` is the first native producer, and its projection work is `0x80083B44`, a 67-instruction COP2 transform that runs `RTPS` on one quad and writes the transformed 4x3 set plus the screen length at data register 17; `0x8002C848` calls it four times.
 - notes: On the record path the guest's GP0 is the picture. Widescreen comes from the canvas plus the widened culls. Interpolation comes from keyed producers.
@@ -145,7 +145,7 @@ runtime.
 - status: re-partial
 - deps: RE-01
 - evidence: C023 and I019 derive SetGeomOffset `0x80083CD4`, SetGeomScreen `0x80083CF4`, and authored initialization `256/120/160`. The hermetic title boundary checks guest and host effects.
-- where: `tests/toystory2_projection_boundary.cpp`; `game/widescreen/guest_widescreen.*`
+- where: psxport's `StockLibgte` bound in `game/runtime/toystory2_runtime.cpp`; `tests/toystory2_projection_boundary.cpp`; `game/widescreen/guest_widescreen.*`
 - gap: Remaining projection/culling writers and current live reach are unverified. One further culling writer is now identified and owned: the screen rectangle the mesh submitter publishes (`RE-05`), which the visibility leaf's console-frame clamp truncates at column 512.
 - notes: Publication does not itself implement widescreen.
 
@@ -170,7 +170,8 @@ runtime.
 - deps: RE-05
 - evidence: From the exact `SLUS_008.93` bytes (`decomp_pipeline.py` plus the disassembly). `0x80025E44` draws each actor of the draw list `0x800A4298` (built by `0x8007863C` from the active list `0x800B18A8` plus the player `0x800B2188`) through `0x8002518C(actor)`, or `0x80024174` when scaled. Parts are 0x6C-byte records at `0x800A9618`, dispatched by part type: 1 → `0x8001CD34` (mode 0) or `0x8001C920`; 2 → `0x80031C3C` via `0x80033C30`; 3 → `0x800396B0`/`0x8003925C`; 5 → `0x8001D240`; 6 → `0x800362C0`; 9 → `0x8001DFE4` (mode 2, Buzz); 10 → `0x80033C58`. A part's faces at `*(part+0x20)` are 0x30-byte quads (type bits `0x3C000000`) and 0x24-byte triangles, ended by a word with no type bits; the drawers hold the pool cursor `0x800A1608` in `s3`, spill `s0..s7` to `0x1F800000`, and store the cursor only on return. `0x8001DFE4` fetches quad corner normals in slot order 0,1,3,2. The actor pool is 64 records of 0x98 bytes at `0x800C2EA0`, slot i bound to placement `0x800B57A8 + i*0x20`; `0x8006A9FC(actor, mode)` resets an actor to its placement, called by the level start `0x8006ADF8` and for respawn from `0x8006CE84` at `0x8006D088`.
 - where: `game/render/actor_incarnation.*`, `game/render/actor_producers.*`, `game/render/part_face_drawers.*`
-- gap: `0x8001C920` and `0x8001DFE4` are ported and diff-proven (4:3 packets, scratchpad and screens identical to retail-path HEAD). Not ported: `0x8001CD34` (no replay reaches it, so a port cannot be proven), `0x80031C3C`, `0x800396B0`, `0x8003925C`, `0x8001D240`, `0x800362C0`, `0x80033C58`, and the hierarchical drawers `0x8002B6F0`/`0x8002AC40` (compiled C over helpers `0x80084024`, `0x80083F74`, subdivider `0x80084154`). Whether `0x80024174` reaches the same drawers is unchecked.
+- gap: `0x8001C920` and `0x8001DFE4` are ported and diff-proven (4:3 packets, scratchpad and screens identical to retail-path HEAD); `0x8002AC40` is ported and override-differential clean (1841 calls, 0 mismatches). Not ported: `0x8001CD34` (no replay reaches it, so a port cannot be proven), `0x80031C3C`, `0x800396B0`, `0x8003925C`, `0x8001D240`, `0x800362C0`, `0x80033C58`, and the hierarchical drawer `0x8002B6F0` (compiled C over helpers `0x80084024`, `0x80083F74`, subdivider `0x80084154`). `PSXPORT_REACH_REPORT` over the Andy's House route reaches `0x80031C3C`, `0x80033C58`, `0x8002B6F0`, `0x8002AC40` and `0x80012FE0`, and none of `0x8001CD34`, `0x800396B0`, `0x8003925C`, `0x8001D240`, `0x800362C0`. Whether `0x80024174` reaches the same drawers is unchecked.
+- hierarchical drawers: both are called from the world pass `0x8002622C`, which holds the world object record in s7 (`lw` at `0x800262B8`). `0x8002AC40(model, matrix, position, liftScale, bias)` loads the colour matrix from `matrix` (`0x8001F22C`) and the background colour from `position`, turns each 12-byte joint offset by MVMVA `0x4A4DA012` (`0x8001F2C0`), and per 0x2C-byte quad writes the translation to `matrix+0x14`, adds `quad+0x10 * liftScale >> 12` to Z, projects with RotAverage4 `0x80084024`, culls against the clip rect `0x1F800062..6E` and depth limit `0x800A135C + bias*4`, and links a GT4 packet through bucket offsets `0x800A12F8`. Ported (`game/render/hierarchy_drawer.*`), differential clean.
 - notes: A native body charges no guest cycles, so the guest profiler's words (`0x800CF400`, `0x800CF41C..2B`, frame CPU time `0x800A13BC`, written at `0x8003EA2C` with no resident reader) and the exception save slot `0x8000DFF8` differ from a fully guest run; nothing else in RAM does.
 
 ## assets
@@ -198,6 +199,7 @@ runtime.
 - where: `game/fmv/movie_player.cpp`
 - gap: The decompiled per-index `(startLba, sectorCount)` table at `0x800DA2EC` reads as garbage in the file image, so it is initialised at runtime and only its live values are trustworthy; the override therefore takes the movie from the guest's own argument (the path string) and resolves it on the disc rather than re-deriving the table.
 - notes: `0x800D5D20` is a shared slot that MEMORY.BIN also occupies, so `0x800D7088` names nothing without the module identity; the native player is installed per published image generation, not per address.
+- STR ring (stays guest code): ring base slot `0x800CE1B0` (single store `0x80090808`), head `0x800C9504`, post guards `0x800CE148`/`0x800C1170`, user callback `0x800B2364`, pop `0x800940F4`, post `0x80093E88` (only writer of state 2, only call `0x80094B30`), 32-byte entries. The FMV overlay's wait `0x800D6DC8` gives up after `0x8000` retries.
 
 ### RE-20 — the level start's transition fades are authored, not a load wait
 - status: done

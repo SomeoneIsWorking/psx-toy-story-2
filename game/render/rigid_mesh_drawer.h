@@ -6,18 +6,18 @@
 #include "emit_memory.h"
 #include "render/mesh_draw_call.h"
 
+#include <optional>
+
 namespace ts2 {
 
 class RigidMeshDrawer {
 public:
   inline static constexpr std::uint32_t kEntry = 0x80017FF8u;
 
-  // Whether every command of the mesh has a ported body; a call with another stays on the guest original.
-  static bool ported(const psx::present::EmitMemory &memory, const MeshDrawCall &call);
+  // The guest ranges a call reads, or nothing when a command has no ported body and the call stays on the guest.
+  static std::optional<MeshDrawInputs> plan(const psx::present::EmitMemory &memory, const MeshDrawCall &call);
 
   static MeshDrawResult run(const psx::present::EmitMemory &memory, const MeshDrawCall &call);
-
-  static MeshDrawInputs inputs(const psx::present::EmitMemory &memory, const MeshDrawCall &call);
 };
 
 } // namespace ts2

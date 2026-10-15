@@ -1,12 +1,12 @@
 ---
 id: 40
 title: Object-renderer primitives have no per-face identity at the guest boundary
-status: investigating
+status: superseded
 symptom: Buzz, actors, pickups and hierarchical models are drawn as the newer record in a 60 fps in-between
 tags: interpolation,render,producers
 state_items: S009,S011
 created: 2026-10-07
-updated: 2026-10-07
+updated: 2026-10-15
 ---
 
 On the record path only keyed primitives move in an in-between. In Andy's House (route
@@ -44,8 +44,8 @@ Then prove each port byte-for-byte with recordcheck at 4:3.
   actor renderer keys 190,312 and leaves 11,064 unkeyed. 4:3 recordcheck mismatched=0 over 2006 presents;
   screens and scratchpad identical to HEAD; RAM differs only in the guest profiler's timing words.
 
-Open: `0x80031C3C`, `0x800396B0`, `0x8003925C`, `0x8001D240`, `0x800362C0`, `0x80033C58`, and the
-hierarchical drawers `0x8002B6F0`/`0x8002AC40` (RE-25).
+Split into one issue per unported drawer: 43 (`0x8001CD34`), 44 (`0x80031C3C`), 45 (`0x800396B0`),
+46 (`0x8003925C`), 47 (`0x8001D240`), 48 (`0x800362C0`), 49 (`0x80033C58`), 50 (`0x8002B6F0`), 51 (`0x8002AC40`, resolved).
 
 ## State producer
 

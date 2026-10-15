@@ -65,16 +65,16 @@ struct PartState {
 
 PartDrawRecorder::PartDrawRecorder(Core &core, const PartDrawCall &call) : call_(call) {
   const EmitMemory guest(core);
-  const std::optional<psx::present::OtSlot> slot = core.otTables.slotOf(guest.mem_r32(PartFaceDrawers::kOrderingTable));
+  const std::optional<psx::present::OtSlot> slot = core.otTables.slotOf(guest.mem_r32(facts::kOrderingTablePointer));
   named_ = slot.has_value();
   if (!named_) {
     return;
   }
   const PartDrawInputs inputs = PartFaceDrawers::inputs(guest, call);
-  cursor_ = guest.mem_r32(PartFaceDrawers::kPacketCursor);
+  cursor_ = guest.mem_r32(facts::kPacketCursor);
   StateHeader header;
   header.call = call;
-  header.tableBase = guest.mem_r32(PartFaceDrawers::kOrderingTable) - slot->index * sizeof(std::uint32_t);
+  header.tableBase = guest.mem_r32(facts::kOrderingTablePointer) - slot->index * sizeof(std::uint32_t);
   header.cursor = cursor_;
   header.arenaBytes = inputs.packetBytes;
   header.ranges = static_cast<std::uint32_t>(inputs.ranges.size());
@@ -94,22 +94,19 @@ PartDrawRecorder::PartDrawRecorder(Core &core, const PartDrawCall &call) : call_
 }
 
 void PartDrawRecorder::save(Core &core) const {
-  if (!named_ || core.mem_r32(PartFaceDrawers::kPacketCursor) == cursor_) {
+  if (!named_ || core.mem_r32(facts::kPacketCursor) == cursor_) {
     return;
   }
   core.frameStates.save(core.emission.current(), std::span<const std::byte>(state_));
 }
 
-void PartStateRender::render(std::span<const std::byte> from,
-                             std::span<const std::byte> to,
-                             float t,
-                             psx::present::PrimitiveSink &sink) const {
-  const PartState state = PartState::read(to);
+void PartStateRender::render(const psx::present::StateInterval &states, psx::present::PrimitiveSink &sink) const {
+  const PartState state = PartState::read(states.to);
   GteControl control = state.header.control;
-  if (t < 1.0f && from.data() != to.data()) {
-    const PartState earlier = PartState::read(from);
+  if (states.t < 1.0f && states.from.data() != states.to.data()) {
+    const PartState earlier = PartState::read(states.from);
     if (earlier.sameDraw(state)) {
-      control = psx::present::blendGteControl(earlier.header.control, state.header.control, t);
+      control = psx::present::blendGteControl(earlier.header.control, state.header.control, states.t);
     }
   }
 
@@ -130,6 +127,7 @@ void PartStateRender::render(std::span<const std::byte> from,
   }
 
   {
+    core_.gte().bind();
     const psx::present::GteGuard guard;
     psx::present::writeGteControl(control);
     PartFaceDrawers::run(EmitMemory(core_, host), state.header.call);

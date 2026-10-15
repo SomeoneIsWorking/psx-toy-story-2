@@ -33,7 +33,8 @@ struct SharedSlotImage {
   }
 
   static OverlaySlot makeSlot(std::vector<OverlayModule> modules = retailModules()) {
-    return OverlaySlot(kLoadAddress, std::max(kMemoryFileBytes, kFmvFileBytes), std::move(modules));
+    return OverlaySlot({.loadAddress = kLoadAddress, .bytes = std::max(kMemoryFileBytes, kFmvFileBytes)},
+                       std::move(modules));
   }
 };
 

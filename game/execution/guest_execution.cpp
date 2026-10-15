@@ -43,12 +43,12 @@ std::uint32_t callFiniteGuestToReturn(Core &core, const GuestCall &call, std::ui
       core, call.owner, call.address, call.returnAddress, std::nullopt, maxSlices);
 }
 
-std::string guestString(Core &core, std::uint32_t address, std::size_t maxBytes) {
+std::string guestPath(Core &core, std::uint32_t address) {
   if (address == 0) {
     return {};
   }
   std::string text;
-  for (std::size_t offset = 0; offset < maxBytes; ++offset) {
+  for (std::size_t offset = 0; offset < kMaxGuestPath; ++offset) {
     const char c = static_cast<char>(core.mem_r8(address + static_cast<std::uint32_t>(offset)));
     if (c == 0) {
       return text;

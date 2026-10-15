@@ -2,7 +2,6 @@
 // leaves behind: a drawer returns v1, so the last primitive's path shows in it.
 #pragma once
 
-#include "core.h"
 #include "gte_registers.h"
 
 #include <cstdint>
@@ -16,14 +15,6 @@ inline bool negative(std::uint32_t value) {
 
 inline bool below(std::uint32_t value, std::uint32_t limit) {
   return static_cast<std::int32_t>(value) < static_cast<std::int32_t>(limit);
-}
-
-inline std::uint32_t gteRead(std::uint32_t reg) {
-  return gte_read_data(reg);
-}
-
-inline void gteWrite(std::uint32_t reg, std::uint32_t value) {
-  gte_write_data(reg, value);
 }
 
 inline constexpr std::uint32_t kSz0 = 16u;

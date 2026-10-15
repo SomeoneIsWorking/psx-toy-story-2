@@ -2,6 +2,8 @@
 // incarnation and the part record, and each of its faces an element of it.
 #pragma once
 
+#include "state_producer.h"
+
 #include <cstdint>
 #include <optional>
 
@@ -20,7 +22,7 @@ public:
   inline static constexpr std::uint32_t kPartTable = 0x800A9618u;
   inline static constexpr std::uint32_t kPartBytes = 0x6Cu;
 
-  static void install(Core &core);
+  static void install(Core &core, psx::present::StateProducerTable &renders);
 
   // The part record's object key under the actor's current life.
   static std::uint32_t partObject(std::uint32_t part, std::uint32_t generation);

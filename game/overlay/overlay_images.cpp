@@ -7,12 +7,13 @@
 #include "fmv/movie_player.h"
 #include "game.h"
 #include "native_dispatch.h"
-#include "runtime/toystory2_context.h"
+#include "runtime/toystory2_session.h"
 
 #include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <lucent/log.h>
+#include <optional>
 #include <vector>
 
 namespace ts2 {
@@ -20,7 +21,6 @@ namespace {
 
 constexpr std::uint32_t kFileLoader = 0x80082508u;
 constexpr std::uint32_t kSectorBytes = 2048u;
-constexpr std::size_t kMaxGuestPath = 128u;
 
 std::vector<std::uint8_t> readDiscImage(Core &core, const OverlayModule &module) {
   std::uint32_t firstSector = 0;
@@ -47,16 +47,16 @@ std::vector<std::uint8_t> readDiscImage(Core &core, const OverlayModule &module)
 }
 
 void observeFileLoad(Core *core) {
-  const std::uint32_t guestPath = core->r[4];
+  const std::uint32_t pathAddress = core->r[4];
   const std::uint32_t destination = core->r[5];
-  OverlaySlot *slot = context(*core).overlays.slotAt(destination);
+  OverlaySlot *slot = session(*core).overlays.slotAt(destination);
   if (slot == nullptr) {
     psx::cpu::callOriginalToReturn(
         *core, kFileLoader, psx::cpu::ExecutionBudget::currentTurn(*core), "Toy Story 2 file loader original");
     return;
   }
 
-  const auto module = slot->matchLoad(*core, guestPath, destination);
+  const auto module = slot->matchLoad(*core, pathAddress, destination);
   std::vector<std::uint8_t> discBytes;
   std::string why;
   if (module) {
@@ -74,7 +74,7 @@ void observeFileLoad(Core *core) {
     lucent::info("ts2-overlay",
                  "slot 0x{:08X} loaded non-module '{}'; identity retired",
                  destination,
-                 guestString(*core, guestPath, kMaxGuestPath));
+                 guestPath(*core, pathAddress));
     slot->retire(*core);
     return;
   }
@@ -85,9 +85,13 @@ void observeFileLoad(Core *core) {
   // The FMV module gets a native movie player: the retail one streams CD sectors that this port serves
   // instantly, flooding the audio ring. Scoped to the identity just published, since 0x800D5D20 is shared.
   if (slot->module(*module).identityName == SharedSlotImage::kFmvIdentityName) {
-    context(*core).moviePlayer.install(*core);
+    session(*core).moviePlayer.install(*core);
   }
-  const auto identity = slot->activeIdentity();
+  const std::optional<psx::cpu::ImageIdentity> identity = slot->activeIdentity();
+  if (!identity) {
+    lucent::error("ts2-overlay", "published image at 0x{:08X} has no active identity", destination);
+    std::abort();
+  }
   lucent::info("ts2-overlay",
                "authenticated {} image {}:{} at 0x{:08X}, {} bytes",
                slot->module(*module).identityName,

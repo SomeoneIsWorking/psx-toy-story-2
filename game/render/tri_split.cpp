@@ -14,7 +14,7 @@ namespace {
 
 // The seven points of a split triangle: its corners, the middles of its edges and the middle of the first
 // edge's middle and the third corner.
-enum Point : unsigned { C0, C1, C2, M01, M12, M20, X };
+enum Point : std::uint8_t { C0, C1, C2, M01, M12, M20, X };
 
 constexpr std::array<PointSlot, 7> kPoints{{
     {110, 64, 0, true},
@@ -108,13 +108,13 @@ void TriangleSplit::projectMiddles() {
   c.s2 = c.lh(c.t2 + 4);
   c.v1 = MeshCpu::sra(c.a0 + c.s0, 1);
   c.sh(c.t9 + 108, c.v1);
-  gteWrite(1, c.v1);
+  c.gteWrite(1, c.v1);
   c.v1 = MeshCpu::sra(c.v1 + c.s2, 1);
   c.sw(c.t9 + 140, c.v1);
-  gteWrite(3, c.v1);
+  c.gteWrite(3, c.v1);
   c.v1 = MeshCpu::sra(c.s2 + c.a0, 1);
   c.sh(c.t9 + 124, c.v1);
-  gteWrite(5, c.v1);
+  c.gteWrite(5, c.v1);
   c.v1 = MeshCpu::sra(c.s0 + c.s2, 1);
   c.sh(c.t9 + 116, c.v1);
   c.s5 = 0xFFFEFFFEu;
@@ -123,38 +123,38 @@ void TriangleSplit::projectMiddles() {
   c.s2 = c.lw(c.t2 + 0) & c.s5;
   c.v1 = middleXy(c.a0, c.s0);
   c.sw(c.t9 + 104, c.v1);
-  gteWrite(0, c.v1);
+  c.gteWrite(0, c.v1);
   c.v1 = middleXy(c.v1 & c.s5, c.s2);
   c.sw(c.t9 + 136, c.v1);
-  gteWrite(2, c.v1);
+  c.gteWrite(2, c.v1);
   c.v1 = middleXy(c.s2, c.a0);
   c.sw(c.t9 + 120, c.v1);
-  gteWrite(4, c.v1);
+  c.gteWrite(4, c.v1);
   c.v1 = middleXy(c.s0, c.s2);
   c.gteOp(0x4A280030u);
   c.sw(c.t9 + 112, c.v1);
-  c.t0 = gteRead(12);
-  c.t1 = gteRead(13);
-  c.t2 = gteRead(14);
-  c.sw(c.t9 + 44, gteRead(17));
-  c.sw(c.t9 + 60, gteRead(18));
-  c.sw(c.t9 + 52, gteRead(19));
-  gteWrite(0, c.v1);
-  gteWrite(1, c.lw(c.t9 + 116));
+  c.t0 = c.gteRead(12);
+  c.t1 = c.gteRead(13);
+  c.t2 = c.gteRead(14);
+  c.sw(c.t9 + 44, c.gteRead(17));
+  c.sw(c.t9 + 60, c.gteRead(18));
+  c.sw(c.t9 + 52, c.gteRead(19));
+  c.gteWrite(0, c.v1);
+  c.gteWrite(1, c.lw(c.t9 + 116));
   c.gteOp(0x4A180001u);
   c.sw(c.t9 + 80, c.t0);
   c.sw(c.t9 + 96, c.t1);
   c.sw(c.t9 + 88, c.t2);
   c.s0 = ((c.t1 & 0xFFFFu) < 512u ? 2u : 0u) | (c.t1 < kYLimit ? 1u : 0u);
-  const std::uint32_t last = gteRead(14);
-  c.sw(c.t9 + 48, gteRead(19));
+  const std::uint32_t last = c.gteRead(14);
+  c.sw(c.t9 + 48, c.gteRead(19));
   c.sw(c.t9 + 84, last);
   if (c.s0 == 3u) {
     c.sw(c.t9 + split_frame::kMask, kFullMask);
     return;
   }
   const std::array<std::uint32_t, 6> points{c.t0, c.t2, last, c.t4, c.t5, c.t6};
-  storeScreenMask(c.s0, c.t1, c.t2, points);
+  storeScreenMask({.x = c.t1, .y = c.t2, .shownAxes = c.s0}, points);
 }
 
 void TriangleSplit::quarters() {
@@ -180,10 +180,10 @@ void TriangleSplit::quarter(unsigned i) {
     cullQuarter(i);
     return;
   }
-  gteWrite(19, depth(q.ring[0]));
-  gteWrite(18, depth(q.ring[1]));
+  c.gteWrite(19, depth(q.ring[0]));
+  c.gteWrite(18, depth(q.ring[1]));
   c.v1 = depth(q.ring[0]) - c.s4;
-  gteWrite(17, depth(q.ring[2]));
+  c.gteWrite(17, depth(q.ring[2]));
   if (negative(c.v1) && subdivideChild(i, q.ring)) {
     return;
   }
@@ -195,8 +195,8 @@ void TriangleSplit::drawWhole(unsigned i, const Quarter &q) {
   const std::uint32_t packet = child(i);
   c.gteOp(kAverageDepths);
   releaseWhole(i);
-  c.at = gteRead(7);
-  link(packet, (c.at << 2) + c.s1, f_.triangleCommand, q.ring);
+  c.at = c.gteRead(7);
+  link({.packet = packet, .bucket = (c.at << 2) + c.s1}, f_.triangleCommand, q.ring);
 }
 
 // The fan: three children on the edges; the fourth, unused, holds nothing a past split left.

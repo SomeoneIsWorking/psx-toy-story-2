@@ -2,9 +2,8 @@
 
 #include "core.h"
 #include "execution/guest_execution.h"
-#include "game.h"
 #include "native_dispatch.h"
-#include "runtime/toystory2_context.h"
+#include "runtime/toystory2_session.h"
 
 #include <cstdlib>
 #include <lucent/log.h>
@@ -12,10 +11,8 @@
 namespace ts2 {
 namespace {
 
-// 0x8003EEF0 passes these buffers to PadInitDirect. The native owner writes the standard packet itself,
-// so libpad (VBlank-driven) is neither initialized nor polled.
-constexpr uint32_t kPadSlot0 = 0x800CF8A0u;
-constexpr uint32_t kPadSlot1 = 0x800CF8C8u;
+// libpad (VBlank-driven) is neither initialized nor polled.
+constexpr uint32_t kPadSlot0 = PadOwner::kSlot0Buffer;
 constexpr uint32_t kDeferredDisplayRequest = 0x800A10F8u;
 constexpr uint32_t kPadEnabled = 0x800A109Cu;         // gp+0x3c4
 constexpr uint32_t kPadKind = 0x800A0CF4u;            // gp+0x1c
@@ -23,25 +20,16 @@ constexpr uint32_t kAnalogPacket = 0x800A10B0u;       // gp+0x3d8
 constexpr uint32_t kActuatorCount = 0x800A14A8u;      // gp+0x7d0
 constexpr uint32_t kDisconnectedFields = 0x800A1580u; // gp+0x8a8
 
-void writeNativePackets(Core &core) {
-  uint8_t packet[4]{};
-  core.game->pad.fillBuffer(packet);
-  for (uint32_t index = 0; index < 4; ++index) {
-    core.mem_w8(kPadSlot0 + index, packet[index]);
-    core.mem_w8(kPadSlot1 + index, 0xFFu);
-  }
-}
-
 void initializeOverride(Core *core) {
-  context(*core).pad.initialize(*core);
+  session(*core).pad.initialize(*core);
 }
 
 void shutdownOverride(Core *core) {
-  context(*core).pad.shutdown(*core);
+  session(*core).pad.shutdown(*core);
 }
 
 void decodeOverride(Core *core) {
-  core->r[2] = context(*core).pad.decode(*core);
+  core->r[2] = session(*core).pad.decode(*core);
 }
 
 } // namespace
@@ -53,7 +41,6 @@ void PadOwner::initialize(Core &core) {
   core.mem_w16(kAnalogPacket, 0);
   core.mem_w32(kActuatorCount, 0);
   core.mem_w16(kDisconnectedFields, 0);
-  writeNativePackets(core);
   core.mem_w16(kPadEnabled, 1);
 }
 
@@ -63,17 +50,13 @@ void PadOwner::shutdown(Core &core) {
   core.mem_w16(kPadEnabled, 0);
 }
 
-void PadOwner::service(Core &core) {
-  writeNativePackets(core);
-}
-
 uint16_t PadOwner::decode(Core &core) {
   if (core.mem_r16(kPadEnabled) == 0) {
     return 0;
   }
 
   if (core.mem_r8(kPadSlot0) == 0xFFu) {
-    const int16_t missing = core.mem_r16s(kDisconnectedFields);
+    const int32_t missing = core.mem_r16s(kDisconnectedFields);
     if (missing > 5) {
       core.mem_w32(kPadKind, 3);
       core.mem_w32(kActuatorCount, 0);

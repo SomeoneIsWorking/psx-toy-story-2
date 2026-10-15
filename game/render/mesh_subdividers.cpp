@@ -14,9 +14,9 @@ constexpr std::uint32_t kNearEnough = 50u;
 // Edges of the quad whose summed depths fall short of the threshold, one bit each. Returns the bits; the
 // guest leaves the last sum in v1 and the depths restored in t0 and t2.
 std::uint32_t shortEdgesOfQuad(MeshCpu &c) {
-  c.t1 = gteRead(kSz2);
-  c.t2 = gteRead(kSz0);
-  c.t3 = gteRead(psx::gte::kSz1);
+  c.t1 = c.gteRead(kSz2);
+  c.t2 = c.gteRead(kSz0);
+  c.t3 = c.gteRead(psx::gte::kSz1);
   c.t0 -= c.a1;
   c.t2 -= c.a1;
   c.v0 = 0;
@@ -39,9 +39,9 @@ std::uint32_t shortEdgesOfQuad(MeshCpu &c) {
 
 // The same for a triangle's three edges (4, 2, 1); t3 is the caller's.
 std::uint32_t shortEdgesOfTriangle(MeshCpu &c) {
-  c.t2 = gteRead(psx::gte::kSz1);
-  c.t1 = gteRead(kSz2);
-  c.t0 = gteRead(kSz3);
+  c.t2 = c.gteRead(psx::gte::kSz1);
+  c.t1 = c.gteRead(kSz2);
+  c.t0 = c.gteRead(kSz3);
   c.v0 = 0;
   c.v1 = c.t1 + c.t0;
   c.v1 -= c.a1;
@@ -75,7 +75,7 @@ bool allNearer(MeshCpu &c, std::initializer_list<std::uint32_t> depths) {
 
 void subdivideQuadTextured(MeshCpu &c) {
   c.v1 = (c.t9 & 0xFFFFu) - kMaxDepthFrame;
-  c.t0 = gteRead(kSz3);
+  c.t0 = c.gteRead(kSz3);
   if (c.sgn(c.v1) > 0) {
     c.v0 = 0;
     return;
@@ -102,7 +102,7 @@ void subdivideQuadTextured(MeshCpu &c) {
 
 void subdivideTriangleTextured(MeshCpu &c) {
   c.v1 = (c.t9 & 0xFFFFu) - kMaxDepthFrame;
-  c.t2 = gteRead(psx::gte::kSz1);
+  c.t2 = c.gteRead(psx::gte::kSz1);
   if (c.sgn(c.v1) > 0) {
     c.v0 = 0;
     return;
@@ -130,7 +130,7 @@ void subdivideTriangleTextured(MeshCpu &c) {
 
 void subdivideQuadPlain(MeshCpu &c) {
   c.v1 = (c.t9 & 0xFFFFu) - kMaxDepthFrame;
-  c.t0 = gteRead(kSz3);
+  c.t0 = c.gteRead(kSz3);
   if (c.sgn(c.v1) > 0) {
     c.v0 = 0;
     return;
@@ -157,7 +157,7 @@ void subdivideQuadPlain(MeshCpu &c) {
 
 void subdivideTrianglePlain(MeshCpu &c) {
   c.v1 = (c.t9 & 0xFFFFu) - kMaxDepthFrame;
-  c.t2 = gteRead(psx::gte::kSz1);
+  c.t2 = c.gteRead(psx::gte::kSz1);
   if (c.sgn(c.v1) > 0) {
     c.v0 = 0;
     return;

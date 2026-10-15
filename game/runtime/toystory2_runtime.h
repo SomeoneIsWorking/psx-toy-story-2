@@ -1,41 +1,51 @@
 #pragma once
 
-#include "facts/guest_facts.h"
 #include "game_runtime.h"
 #include "input/recording_phase.h"
+#include "stock_dma_callbacks.h"
+#include "stock_libcd.h"
+#include "stock_libgpu.h"
+#include "stock_libgte.h"
+#include "stock_pad_buffers.h"
+#include "stock_vsync.h"
 
 #include <cstdint>
 
 namespace ts2 {
 
-// Declares DeliveryOwner::GuestInterrupt for the CdReadyCallback slot, so the framework's BIOS CD-ROM
-// handler stand-in delivers the CD data-ready interrupt.
-class ToyStory2Runtime final : public GameRuntime {
+// Replays crt0 and guest main's prefix, then ToyStory2FrameDriver owns each field. Records interpolate
+// through the slot-mesh and actor-part producers.
+class ToyStory2Runtime final : public psx::game::GameRuntime {
 public:
-  void *createContext(Core &core) override;
-  void destroyContext(void *context) override;
-  const GuestProgramImage *guestProgramImage() const override;
-  const PlatformHlePlan *platformHlePlan() const override;
-  const GuestPadBufferLayout *guestPadBufferLayout() const override;
-  const GuestCdStreamCallbackLayout *guestCdStreamCallbackLayout() const override;
-  const GuestPacketPoolWindows *guestPacketPoolWindows() const override;
-  const HostIdentity *hostIdentity() const override;
-  RenderCapabilities renderCapabilities() const override;
-  bool guestVramIsPicture(const Game &game) const override;
+  ToyStory2Runtime();
+
+  void startProgram(Core &core) override;
+  void registerOverrides(Game &game) override;
+  std::unique_ptr<psx::game::TitleSessionState> createSession(Game &game) override;
+  std::unique_ptr<psx::game::FrameDriver> createFrameDriver(Game &game) override;
+  void deliverPad(Core &core, const psx::input::PadDelivery &delivery) override;
+  std::optional<psx::gpu::PacketPoolExtent> packetPool(Core &core) const override;
+  bool interpolates() const override {
+    return true;
+  }
+  const psx::present::StateProducer *stateProducer(Core &core, std::uint32_t producer) const override;
   bool sealedFrameIsCut(Core &core) const override;
   const GuestWidescreenProjection *guestWidescreenProjection() const override;
-  std::unique_ptr<FrameDriver> createFrameDriver(Game &game) override;
-  void registerOverrides(Game &game) override;
-  void bootInit(Core &core) override;
-  // The title screen discards Start inside its 30-field lockout, so the framework default (absolute pad
-  // frames) is wrong here.
+  RenderCapabilities renderCapabilities() const override;
+  bool guestVramIsPicture(const Game &game) const override;
+  // The title screen discards Start inside its 30-field lockout, so absolute pad frames would miss it.
   std::uint64_t inputPhase(Core &core) const override {
     return inputPhase_.of(core);
   }
+  const psx::game::HostIdentity *hostIdentity() const override;
 
 private:
-  static constexpr HostIdentity kHostIdentity{.cardEnvVar = facts::kCardEnvVar,
-                                              .cardDefaultPath = facts::kCardDefaultPath};
+  psx::hle::StockLibgte libgte_;
+  psx::hle::StockVSync vsync_;
+  psx::hle::StockLibgpu libgpu_;
+  psx::hle::StockDmaCallbacks dmaCallbacks_;
+  psx::cd::GuestInterruptLibcd libcd_;
+  psx::input::StockPadBuffers pad_;
   InputPhase inputPhase_;
 };
 
