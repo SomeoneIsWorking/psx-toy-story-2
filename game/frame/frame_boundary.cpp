@@ -6,7 +6,7 @@
 #include "facts/guest_facts.h"
 #include "game.h"
 #include "game_runtime.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 #include <array>
 #include <cstdint>
@@ -104,7 +104,7 @@ void CoreFrameBoundary::beginLogicFrame(uint32_t frame) {
   core_.game->timing.logicFrame = frame;
 }
 
-// The pad hands its packet to ToyStory2Runtime::deliverPad, which fills the buffers the decoder reads.
+// The pad hands its packet to Runtime::deliverPad, which fills the buffers the decoder reads.
 void CoreFrameBoundary::sampleInput() {
   core_.game->pad.serviceFrame();
 }

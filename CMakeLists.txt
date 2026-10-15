@@ -40,7 +40,7 @@ set(PSXPORT_BUILD_TESTS OFF CACHE BOOL "Register psxport's complete test suite" 
 set(PSXPORT_BUILD_SMOKE OFF CACHE BOOL "Build the framework smoke" FORCE)
 add_subdirectory(${PSXPORT_DIR} ${CMAKE_BINARY_DIR}/psxport_build)
 
-include(cmake/toystory2_port.cmake)
+include(cmake/port.cmake)
 
 if(BUILD_TESTING)
   # Gate: the C++ boundary tests, the --help contract and the C++ policy check.

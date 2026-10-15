@@ -1,4 +1,4 @@
-#include "runtime/toystory2_runtime.h"
+#include "runtime/runtime.h"
 
 #include "cd/file_transfer.h"
 #include "core.h"
@@ -13,7 +13,7 @@
 #include "render/hierarchy_drawer.h"
 #include "render/ordering_tables.h"
 #include "render/slot_mesh_producers.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 #include "widescreen/guest_widescreen.h"
 #include "widescreen/resident_widescreen.h"
 
@@ -79,23 +79,23 @@ constexpr std::uint32_t kDmaCallbackTable = 0x8009FD60u;
 
 } // namespace
 
-ToyStory2Runtime::ToyStory2Runtime()
+Runtime::Runtime()
     : libgte_({.setGeomOffset = 0x80083CD4u, .setGeomScreen = 0x80083CF4u}), vsync_(kVSync, facts::kVSyncQueryCounter),
       libgpu_(kLibgpu), dmaCallbacks_(kDmaCallbackTable), libcd_(kLibcd, kLibcdWorkArea, kCdReadyCallback, {}),
       pad_({.slot0Buffer = PadOwner::kSlot0Buffer, .slot1Buffer = PadOwner::kSlot1Buffer}) {}
 
-void ToyStory2Runtime::startProgram(Core &core) {
+void Runtime::startProgram(Core &core) {
   psx::game::Crt0Boot{kCrt0}.run(core);
   session(core).guestMainBoot.initialize(core);
 }
 
-void ToyStory2Runtime::registerOverrides(Game &game) {
+void Runtime::registerOverrides(Game &game) {
   libgte_.bind(game);
   vsync_.bind(game);
   libgpu_.bind(game);
   dmaCallbacks_.bind(game);
   libcd_.bind(game);
-  ToyStory2Session &title = session(game.core);
+  Session &title = session(game.core);
   title.graphicsSync.install(game.core);
   title.overlays.installLoadObserver(game.core);
   cd::FileTransfer::install(game.core);
@@ -110,35 +110,35 @@ void ToyStory2Runtime::registerOverrides(Game &game) {
   ResidentWidescreenCull::install(game.core);
 }
 
-std::unique_ptr<psx::game::TitleSessionState> ToyStory2Runtime::createSession(Game &) {
-  return std::make_unique<ToyStory2Session>();
+std::unique_ptr<psx::game::TitleSessionState> Runtime::createSession(Game &) {
+  return std::make_unique<Session>();
 }
 
-std::unique_ptr<psx::game::FrameDriver> ToyStory2Runtime::createFrameDriver(Game &game) {
+std::unique_ptr<psx::game::FrameDriver> Runtime::createFrameDriver(Game &game) {
   return ts2::createFrameDriver(game);
 }
 
-void ToyStory2Runtime::deliverPad(Core &core, const psx::input::PadDelivery &delivery) {
+void Runtime::deliverPad(Core &core, const psx::input::PadDelivery &delivery) {
   pad_.deliver(core, delivery);
 }
 
-std::optional<psx::gpu::PacketPoolExtent> ToyStory2Runtime::packetPool(Core &core) const {
+std::optional<psx::gpu::PacketPoolExtent> Runtime::packetPool(Core &core) const {
   return kPacketPool.extent(core);
 }
 
-const psx::present::StateProducer *ToyStory2Runtime::stateProducer(Core &core, std::uint32_t producer) const {
+const psx::present::StateProducer *Runtime::stateProducer(Core &core, std::uint32_t producer) const {
   return session(core).stateProducers.find(producer);
 }
 
-bool ToyStory2Runtime::sealedFrameIsCut(Core &core) const {
+bool Runtime::sealedFrameIsCut(Core &core) const {
   return session(core).frameCut.isCut();
 }
 
-const GuestWidescreenProjection *ToyStory2Runtime::guestWidescreenProjection() const {
+const GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {
   return &guestWidescreenPolicy();
 }
 
-RenderCapabilities ToyStory2Runtime::renderCapabilities() const {
+RenderCapabilities Runtime::renderCapabilities() const {
   // The picture is the guest's GP0 output replayed from the frame record.
   return RenderCapabilities{
       .defaultPath = RenderPath::Record,
@@ -146,11 +146,11 @@ RenderCapabilities ToyStory2Runtime::renderCapabilities() const {
   };
 }
 
-bool ToyStory2Runtime::guestVramIsPicture(const Game &) const {
+bool Runtime::guestVramIsPicture(const Game &) const {
   return true;
 }
 
-const psx::game::HostIdentity *ToyStory2Runtime::hostIdentity() const {
+const psx::game::HostIdentity *Runtime::hostIdentity() const {
   return &kHostIdentity;
 }
 

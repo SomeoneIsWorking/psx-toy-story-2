@@ -1,9 +1,9 @@
-// title_game.h — a Game around ToyStory2Runtime, for a test of one title owner.
+// title_game.h — a Game around ts2::Runtime, for a test of one title owner.
 #pragma once
 
 #include "core.h"
 #include "game.h"
-#include "runtime/toystory2_runtime.h"
+#include "runtime/runtime.h"
 #include "typed_config.h"
 
 #include <memory>
@@ -20,7 +20,7 @@ public:
   Core &core() {
     return game_->core;
   }
-  ToyStory2Runtime &runtime() {
+  Runtime &runtime() {
     return runtime_;
   }
 
@@ -36,7 +36,7 @@ public:
   }
 
 private:
-  ToyStory2Runtime runtime_;
+  Runtime runtime_;
   std::unique_ptr<Game> game_;
 };
 

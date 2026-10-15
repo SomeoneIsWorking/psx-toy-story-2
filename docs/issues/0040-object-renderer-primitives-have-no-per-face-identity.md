@@ -10,7 +10,7 @@ updated: 2026-10-15
 ---
 
 On the record path only keyed primitives move in an in-between. In Andy's House (route
-`replays/toystory2_player_andys_house_v2.pad`, frames 1400..2000, REPL `census`) about 236k of 714k
+`replays/player_andys_house_v2.pad`, frames 1400..2000, REPL `census`) about 236k of 714k
 gameplay primitives come from the resident update `0x8007B254` with no key, about 335 per frame from the
 object renderer alone.
 

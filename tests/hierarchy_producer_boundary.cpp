@@ -6,7 +6,7 @@
 #include "gte_control.h"
 #include "render/hierarchy_drawer.h"
 #include "render/ordering_tables.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 #include "state_render_check.h"
 #include "testutil.h"
 

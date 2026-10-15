@@ -7,7 +7,7 @@
 #include "native_dispatch.h"
 #include "render/actor_producers.h"
 #include "render/part_draw_state.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 #include <array>
 #include <cstddef>

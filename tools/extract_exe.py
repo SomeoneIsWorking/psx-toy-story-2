@@ -6,7 +6,7 @@
 Extracts SLUS_008.93 (SYSTEM.CNF: `BOOT = cdrom:\\SLUS_008.93;1`) to scratch/bin/toystory2/, prints the
 PS-EXE header and compares SHA-1 and size with docs/info/exe-identity.txt. There is no decomp of Toy Story 2,
 so the expected value is this repo's own measurement: the check detects a different image, not which is right.
-The header values are the crt0 group kCrt0 in game/runtime/toystory2_runtime.cpp.
+The header values are the crt0 group kCrt0 in game/runtime/runtime.cpp.
 """
 
 import hashlib

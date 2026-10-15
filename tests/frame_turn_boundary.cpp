@@ -187,7 +187,7 @@ void test_runtime_supplies_title_frame_driver() {
 
 void test_runtime_selects_the_record_path_with_guest_widescreen() {
   ts2::test::TitleGame title;
-  const ts2::ToyStory2Runtime &runtime = title.runtime();
+  const ts2::Runtime &runtime = title.runtime();
   Game *game = &title.game();
 
   // The picture is the guest's GP0 output replayed from the frame record; producers render the in-between.

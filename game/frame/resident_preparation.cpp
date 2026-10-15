@@ -1,7 +1,7 @@
 #include "frame/resident_preparation.h"
 
 #include "core.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 #include <array>
 

@@ -32,7 +32,7 @@ def main() -> int:
             build=build,
             psxport=framework,
             product=build / "bin/toystory2_port",
-            cmake_module=ROOT / "cmake/toystory2_port.cmake",
+            cmake_module=ROOT / "cmake/port.cmake",
             test_regex=".",
             cmake_definitions=("-DBUILD_TESTING=ON",),
         )

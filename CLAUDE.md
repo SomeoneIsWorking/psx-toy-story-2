@@ -18,7 +18,7 @@ portfolio native/dynarec contract before changing execution architecture.
 
 ## Ownership
 
-`ToyStory2Runtime` composes title behavior. `game/execution/guest_execution.*` is the one title-side
+`ts2::Runtime` composes title behavior. `game/execution/guest_execution.*` is the one title-side
 adapter to psxport's typed guest-call, original-call, and image-scoped native-dispatch APIs. Native
 input, finite-frame, graphics synchronization, scene observation, projection, and asset-decoding
 owners remain cohesive modules; do not grow a runtime or entry-point monolith.

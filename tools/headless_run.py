@@ -11,7 +11,7 @@ captured, and only on its own timeout.
         --tap 600:start --tap 640:cross:6 --shot-at 590,700,880 --dump-at 880
     uv run --frozen python tools/headless_run.py --aspect 16x9 --shot-at 900 --frames 1000 --tap 600:start ...
 
-`--tap FRAME:BUTTON[:HOLD]` is an exact-frame pad edge, compiled by tools/ts2_route.py into a psxport pad
+`--tap FRAME:BUTTON[:HOLD]` is an exact-frame pad edge, compiled by tools/route.py into a psxport pad
 replay. `--dump-at F,...` writes the 2 MiB guest RAM at those pad frames (PSXPORT_PAD_DUMP_AT); `--shot-at`
 captures presented frames (PSXPORT_PRESENT_SHOT_AT). The product runs in `scratch/headless/work`.
 
@@ -37,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from execution_ledger import Ledger, is_ledger_line, parse as parse_ledger, render as render_ledger  # noqa: E402
 from resolve_disc import resolve as resolve_disc  # noqa: E402
-from ts2_route import Tap, compile_pad, parse_tap  # noqa: E402
+from route import Tap, compile_pad, parse_tap  # noqa: E402
 
 FRAMEWORK = ROOT / "external" / "psxport"
 SCRATCH = ROOT / "scratch" / "headless"

@@ -13,11 +13,11 @@
 
 namespace ts2 {
 
-// Replays crt0 and guest main's prefix, then ToyStory2FrameDriver owns each field. Records interpolate
+// Replays crt0 and guest main's prefix, then FrameDriver owns each field. Records interpolate
 // through the slot-mesh and actor-part producers.
-class ToyStory2Runtime final : public psx::game::GameRuntime {
+class Runtime final : public psx::game::GameRuntime {
 public:
-  ToyStory2Runtime();
+  Runtime();
 
   void startProgram(Core &core) override;
   void registerOverrides(Game &game) override;

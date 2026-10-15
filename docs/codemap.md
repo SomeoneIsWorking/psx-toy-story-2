@@ -7,13 +7,13 @@ framework side is `external/psxport/docs/codemap.md`.
 
 | owner | path | owns |
 |---|---|---|
-| `createCatalog` | `game/entry/toystory2_catalog.*` | The one-title catalog: `SLUS_008.93` identity, `PSXPORT_TS2_DISC`, provisioning under `scratch/bin`, one `ToyStory2Runtime` |
-| `ToyStory2Runtime` | `game/runtime/toystory2_runtime.*` | The `GameRuntime`: crt0 (`Crt0Boot`), stock libgte/VSync/libgpu/DMA-callback/libcd/pad objects bound in `registerOverrides`, the title overrides, session, frame driver, packet pool, state producers, cut, widescreen policy, input phase, host identity |
-| `ToyStory2Session`, `session` | `game/runtime/toystory2_session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations, the state-producer table |
+| `createCatalog` | `game/entry/catalog.*` | The one-title catalog: `SLUS_008.93` identity, `PSXPORT_TS2_DISC`, provisioning under `scratch/bin`, one `ts2::Runtime` |
+| `ts2::Runtime` | `game/runtime/runtime.*` | The `GameRuntime`: crt0 (`Crt0Boot`), stock libgte/VSync/libgpu/DMA-callback/libcd/pad objects bound in `registerOverrides`, the title overrides, session, frame driver, packet pool, state producers, cut, widescreen policy, input phase, host identity |
+| `ts2::Session`, `session` | `game/runtime/session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations, the state-producer table |
 | `GuestMainBoot` | `game/boot/guest_main_boot.*` | The measured prefix of guest main `0x8007A9E8`, then overlay initialization, stopping before the outer loop |
 | `GraphicsSync` | `game/boot/graphics_sync.*` | Graphics init, resident init, shutdown and field barrier (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`) with no guest-owned VSync |
 | `LevelStartPresentation` | `game/boot/level_start_presentation.*` | The `0x8007C278` override per level start; suppresses only the demo-forced LOADING card |
-| `createFrameDriver`, `ToyStory2FrameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: one `stepResidentFrame` per step |
+| `createFrameDriver`, `ts2::FrameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: one `stepResidentFrame` per step |
 | `stepResidentFrame`, `ResidentFrameBoundary` | `game/frame/resident_frame.*` | The per-frame order: quota, logic frame, input, fields, deferred display, present, update, audio |
 | `CoreFrameBoundary`, `FrameCallState` | `game/frame/frame_boundary.*` | Both boundaries over one Core; the state a turn carries to the next |
 | `stepOuterLoop`, `OuterLoopState` | `game/frame/outer_loop.*` | One finite outer-loop operation per call: front-end poll field, selection, resident update, transition field |
@@ -48,7 +48,7 @@ framework side is `external/psxport/docs/codemap.md`.
 | `HierarchyDrawer` | `game/render/hierarchy_drawer.*` | Native hierarchical model drawer `0x8002AC40`, keyed by the caller's world object record (s7) |
 | `HierarchyDrawRecorder`, `HierarchyStateRender` | `game/render/hierarchy_draw_state.*` | Saves a hierarchy draw; renders it at t over host memory |
 | launcher | `tools/run.py`, `tools/resolve_disc.py`, `tools/extract_exe.py`, `tools/discdump.py` | Disc resolution and extraction for the zero-argument launch |
-| run control | `tools/headless_run.py`, `tools/execution_ledger.py`, `tools/ts2_route.py` | Hidden-window runs, replays, the run-end ledger |
+| run control | `tools/headless_run.py`, `tools/execution_ledger.py`, `tools/route.py` | Hidden-window runs, replays, the run-end ledger |
 | RE evidence | `tools/ram_image.py`, `tools/ghidra_xref.py`, `tools/re_xref.py` | The RAM image Ghidra imports and address xrefs |
 | framework fetch, verify | `tools/psxport_fetch.py`, `tools/verify.py` | The `external/psxport` link and the gate |
 | tests | `tests/` | Runtime bindings (projection, libcd, DMA, pad), the frame turn, execution and overlays, producers and their renders, the level-start card; `title_game.h` builds a `Game` over the shipping runtime, `state_render_check.h` compares a producer's render with the packets the guest linked |
@@ -56,9 +56,9 @@ framework side is `external/psxport/docs/codemap.md`.
 
 ## Where new work goes
 
-- A guest function Toy Story 2 replaces → `game/<subsystem>/`, installed from `ToyStory2Runtime::registerOverrides`.
-- A stock library body → a psxport stock class bound in `ToyStory2Runtime`, never a title copy.
-- Per-Core title state → `ToyStory2Session`.
+- A guest function Toy Story 2 replaces → `game/<subsystem>/`, installed from `Runtime::registerOverrides`.
+- A stock library body → a psxport stock class bound in `ts2::Runtime`, never a title copy.
+- Per-Core title state → `ts2::Session`.
 - A native drawer → `game/render/`, with a recorder and a `StateProducer` in the session table.
 - A measured guest address → beside the owner that reads it, evidence in `docs/re-frontier.md`.
 - Anything every title shares → psxport, not here.

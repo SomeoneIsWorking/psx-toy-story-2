@@ -3,7 +3,7 @@
 #include "core.h"
 #include "execution/guest_execution.h"
 #include "native_dispatch.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 #include <cstdlib>
 #include <lucent/log.h>

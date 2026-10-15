@@ -3,7 +3,7 @@
 #include "core.h"
 #include "execution_exit.h"
 #include "native_dispatch.h"
-#include "runtime/toystory2_session.h"
+#include "runtime/session.h"
 
 namespace ts2 {
 namespace {

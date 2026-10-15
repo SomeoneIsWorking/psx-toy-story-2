@@ -47,8 +47,8 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/render/static_mesh_drawer.cpp
   game/render/static_mesh_plan.cpp
   game/render/slot_mesh_producers.cpp
-  game/runtime/toystory2_session.cpp
-  game/runtime/toystory2_runtime.cpp
+  game/runtime/session.cpp
+  game/runtime/runtime.cpp
   game/widescreen/guest_widescreen.cpp
   game/widescreen/resident_widescreen.cpp
 )
@@ -63,8 +63,8 @@ if(PSXPORT_BUILD_PORT)
   psxport_add_product(
     toystory2_port
     CATALOG ts2::createCatalog
-    HEADER entry/toystory2_catalog.h
-    SOURCES game/entry/toystory2_catalog.cpp ${TOYSTORY2_RUNTIME_SOURCES}
+    HEADER entry/catalog.h
+    SOURCES game/entry/catalog.cpp ${TOYSTORY2_RUNTIME_SOURCES}
   )
   toystory2_configure_target(toystory2_port)
   if(TARGET gen_gpu_shaders)
@@ -81,7 +81,7 @@ endif()
 
 add_executable(
   toystory2_projection_boundary
-  tests/toystory2_projection_boundary.cpp
+  tests/projection_boundary.cpp
   ${TOYSTORY2_RUNTIME_SOURCES}
 )
 toystory2_configure_target(toystory2_projection_boundary)
@@ -89,7 +89,7 @@ target_include_directories(toystory2_projection_boundary PRIVATE ${PSXPORT_DIR}/
 
 add_executable(
   toystory2_cd_hle_boundary
-  tests/toystory2_cd_hle_boundary.cpp
+  tests/cd_hle_boundary.cpp
   ${TOYSTORY2_RUNTIME_SOURCES}
 )
 toystory2_configure_target(toystory2_cd_hle_boundary)
@@ -97,7 +97,7 @@ target_include_directories(toystory2_cd_hle_boundary PRIVATE ${PSXPORT_DIR}/test
 
 add_executable(
   toystory2_level_start_card_boundary
-  tests/toystory2_level_start_card_boundary.cpp
+  tests/level_start_card_boundary.cpp
   ${TOYSTORY2_RUNTIME_SOURCES}
 )
 toystory2_configure_target(toystory2_level_start_card_boundary)
@@ -129,7 +129,7 @@ target_include_directories(toystory2_hierarchy_producer_boundary PRIVATE ${PSXPO
 
 add_executable(
   toystory2_execution_boundary
-  tests/toystory2_execution_boundary.cpp
+  tests/execution_boundary.cpp
   ${TOYSTORY2_RUNTIME_SOURCES}
 )
 toystory2_configure_target(toystory2_execution_boundary)
