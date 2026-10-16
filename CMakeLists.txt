@@ -84,4 +84,6 @@ if(BUILD_TESTING)
       --root ${CMAKE_SOURCE_DIR}
       --compile-commands ${CMAKE_BINARY_DIR}/compile_commands.json
   )
+  # Whole-repo clang-tidy: about 1,500 s cold on a 4-core CI runner with clang-tidy 21.
+  set_tests_properties(cpp_policy PROPERTIES TIMEOUT 3000)
 endif()
