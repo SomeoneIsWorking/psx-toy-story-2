@@ -25,6 +25,9 @@ public:
   explicit FrameCallState(Core &core) : core_(core) {}
 
   FieldCall &fieldCall();
+  OuterLoopState &outerLoop() {
+    return outerLoop_;
+  }
 
 private:
   friend class CoreFrameBoundary;
@@ -61,6 +64,7 @@ public:
   bool playbackMode() const override;
   void setPlaybackMode(bool enabled) override;
   void selectPlaybackLevel() override;
+  void selectWarpLevel(uint16_t level) override;
   bool needsInteractiveSelection() const override;
   SelectionProgress stepInteractiveSelection() override;
   ResidentPreparationProgress prepareResident() override;

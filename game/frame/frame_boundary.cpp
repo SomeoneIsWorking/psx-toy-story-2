@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <lucent/log.h>
+#include <utility>
 
 namespace ts2 {
 namespace {
@@ -31,8 +32,6 @@ constexpr uint32_t kBootCountdown = 0x800C166Cu;
 constexpr uint32_t kMemoryState = 0x800C1608u;
 constexpr uint32_t kSelectionActive = 0x800A1420u;
 constexpr uint32_t kLevelTable = 0x8009DEF8u;
-constexpr uint32_t kLoopExitReason = 0x800A136Eu;
-constexpr uint32_t kExitCountdown = 0x800A155Cu;
 constexpr uint32_t kReturnToFrontEnd = 0x800A1600u;
 constexpr uint32_t kSequenceRemaining = 0x800B2222u;
 constexpr uint32_t kSequenceGate = 0x800B221Eu;
@@ -117,10 +116,12 @@ void CoreFrameBoundary::tickDisplayField() {
 }
 
 void CoreFrameBoundary::serviceDeferredDisplay() {
+  // One deferred display per field: the guest barrier that ended the last step already ran it.
+  const bool displayedAtBarrier = std::exchange(session(core_).displayedAtBarrier, false);
   if (state_.outerLoop_.phase == OuterLoopPhase::introMovies) {
     return; // the FMV overlay owns the display; 0x80021028 belongs to the resident front end
   }
-  if (state_.fieldCall().pending()) {
+  if (displayedAtBarrier || state_.fieldCall().pending() || state_.residentPreparation_.pending()) {
     // A suspended guest call owns its display loop; a host call here would clobber its registers.
     return;
   }
@@ -143,8 +144,11 @@ void CoreFrameBoundary::updateResidentGame() {
   session(core_).frameCut.notePassEnded(core_);
 }
 
+// SpuAudio::frame advances the SPU by one display field.
 void CoreFrameBoundary::advanceAudio() {
-  core_.game->spu_audio.frame();
+  for (int field = 0; field < fieldsDelivered_; ++field) {
+    core_.game->spu_audio.frame();
+  }
 }
 
 void CoreFrameBoundary::present(int guestFields) {
@@ -271,6 +275,16 @@ void CoreFrameBoundary::selectPlaybackLevel() {
   core_.mem_w16(kPlaybackLevel, selection);
 }
 
+// The event-1 player leg with the selection screen's cursor written directly; the same memory-state decode as
+// selectPlaybackLevel, whose commit writes the cursor first.
+void CoreFrameBoundary::selectWarpLevel(uint16_t level) {
+  setPlaybackMode(false);
+  callFiniteInitialization(kPrepareMemoryState, "warp memory-state preparation", kMemoryState);
+  callFiniteInitialization(kCommitMemoryState, "warp memory-state commit", kMemoryState);
+  core_.mem_w16(kPlaybackLevel, level);
+  lucent::info("ts2-frame", "warp selects level index {}, level id 0x{:08X}", level, levelId(level));
+}
+
 bool CoreFrameBoundary::needsInteractiveSelection() const {
   return !playbackMode() && static_cast<int32_t>(core_.mem_r32(kBootCountdown)) < 0;
 }
@@ -352,7 +366,7 @@ void CoreFrameBoundary::restartFrontEnd() {
 }
 
 bool CoreFrameBoundary::residentActive() const {
-  return core_.mem_r16(kLoopExitReason) == 0 || core_.mem_r16(kExitCountdown) != 0;
+  return core_.mem_r16(facts::kLoopExitReason) == 0 || core_.mem_r16(facts::kExitCountdown) != 0;
 }
 
 void CoreFrameBoundary::updateResident() {
@@ -367,17 +381,17 @@ PostResidentTransition CoreFrameBoundary::finishResident() {
   callGuest(core_, kEndResidentDisplay, {0});
   callGuest(core_, kReleaseResident);
 
-  if (core_.mem_r16(kLoopExitReason) != 2) {
+  if (core_.mem_r16(facts::kLoopExitReason) != 2) {
     callGuest(core_, kReleaseMemory);
   }
   if (core_.mem_r32(kReturnToFrontEnd) != 0) {
-    if (core_.mem_r16(kLoopExitReason) == 2) {
+    if (core_.mem_r16(facts::kLoopExitReason) == 2) {
       callGuest(core_, kReleaseMemory);
     }
     return PostResidentTransition::frontEndSetup;
   }
 
-  const uint16_t reason = core_.mem_r16(kLoopExitReason);
+  const uint16_t reason = core_.mem_r16(facts::kLoopExitReason);
   if (reason == 2) {
     if (core_.mem_r16(kSequenceRemaining) == 0) {
       callGuest(core_, kReleaseMemory);
@@ -407,9 +421,9 @@ PostResidentTransition CoreFrameBoundary::finishResident() {
 
   const uint32_t level = core_.mem_r32(kLevelId);
   if (reason == 5 && level % 3 != 0) {
-    core_.mem_w16(kLoopExitReason, 1);
+    core_.mem_w16(facts::kLoopExitReason, 1);
   }
-  if (core_.mem_r16(kLoopExitReason) == 1) {
+  if (core_.mem_r16(facts::kLoopExitReason) == 1) {
     return beginSequenceLevel(level);
   }
   return PostResidentTransition::residentSetup;

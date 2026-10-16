@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "execution/guest_execution.h"
+#include "facts/guest_facts.h"
 
 #include <array>
 #include <cstdint>
@@ -30,7 +31,6 @@ constexpr uint32_t kDisplayWidthMode = 0x800C160Du;
 constexpr uint32_t kDisplayHeightMode = 0x800C160Eu;
 constexpr uint32_t kPlaybackMode = 0x800A1670u;
 constexpr uint32_t kMenuPhase = 0x800A14D8u;
-constexpr uint32_t kLoopExitReason = 0x800A136Eu;
 
 constexpr std::string_view kBootOwner = "Toy Story 2 boot";
 constexpr std::array<uint32_t, 2> kZeroArguments{};
@@ -61,7 +61,7 @@ void GuestMainBoot::initialize(Core &core) {
   core.mem_w8(kMemoryFlags, 0xC0);
   core.mem_w16(kPlaybackMode, 0);
   core.mem_w32(kMenuPhase, 0);
-  core.mem_w16(kLoopExitReason, 0);
+  core.mem_w16(facts::kLoopExitReason, 0);
   core.mem_w16(kMemoryVariant, 0);
   core.mem_w8(kDisplayWidthMode, 8);
   core.mem_w8(kDisplayHeightMode, 8);

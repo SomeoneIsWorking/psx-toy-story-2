@@ -42,6 +42,8 @@ enum class ResidentPreparationProgress {
 
 struct OuterLoopState {
   OuterLoopPhase phase = OuterLoopPhase::coldSetup;
+  // A dev warp's level cursor, taken when the running level has ended.
+  std::optional<uint16_t> warpLevel;
 };
 
 // Finite operations of main 0x8007A9E8; one stepOuterLoop call performs at most one of them.
@@ -62,6 +64,8 @@ public:
   virtual bool playbackMode() const = 0;
   virtual void setPlaybackMode(bool enabled) = 0;
   virtual void selectPlaybackLevel() = 0;
+  // The player leg into level cursor `level`, in place of the front end's selection.
+  virtual void selectWarpLevel(uint16_t level) = 0;
   virtual bool needsInteractiveSelection() const = 0;
   virtual SelectionProgress stepInteractiveSelection() = 0;
   virtual ResidentPreparationProgress prepareResident() = 0;

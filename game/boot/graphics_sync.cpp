@@ -149,6 +149,7 @@ void completeOwnedFieldBarrier(Core *core) {
     std::abort();
   }
   if (yieldsToHost) {
+    session(*core).displayedAtBarrier = true;
     psx::cpu::requestExecutionExit(*core, psx::cpu::ExecutionExitReason::FrameBoundary);
   }
 }

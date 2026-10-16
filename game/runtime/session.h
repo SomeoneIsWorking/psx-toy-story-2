@@ -34,6 +34,8 @@ public:
   // True while a guest call suspended between display fields (the front-end poll) runs; its field
   // barrier then exits the executor at the field boundary so the host can present.
   bool yieldAtFieldBarrier = false;
+  // The guest's own field barrier ended the last host step after running the field's deferred display 0x80021028.
+  bool displayedAtBarrier = false;
 };
 
 // The session of the Game `core` belongs to; aborts when it has none.

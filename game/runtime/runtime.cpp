@@ -17,6 +17,10 @@
 #include "widescreen/guest_widescreen.h"
 #include "widescreen/resident_widescreen.h"
 
+#include <cstdlib>
+#include <lucent/log.h>
+#include <string_view>
+
 namespace ts2 {
 namespace {
 
@@ -141,6 +145,24 @@ const GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {
 
 const psx::game::HostIdentity *Runtime::hostIdentity() const {
   return &kHostIdentity;
+}
+
+bool Runtime::titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) {
+  if (std::string_view(input.command) != "warp") {
+    return false;
+  }
+  auto *driver = dynamic_cast<FrameDriver *>(core.game->frameDriver.get());
+  if (driver == nullptr) {
+    lucent::error("ts2-runtime", "warp arrived with no Toy Story 2 frame driver");
+    std::abort();
+  }
+  std::fprintf(reply, "%s\n", driver->devWarp().arm(input.line).c_str());
+  return true;
+}
+
+psx::game::TitleDevWarp *Runtime::devWarp(Core &core) const {
+  auto *driver = dynamic_cast<FrameDriver *>(core.game->frameDriver.get());
+  return driver != nullptr ? &driver->devWarp() : nullptr;
 }
 
 } // namespace ts2

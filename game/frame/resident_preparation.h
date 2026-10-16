@@ -17,6 +17,10 @@ namespace ts2 {
 class ResidentPreparation {
 public:
   ResidentPreparationProgress step(Core &core, uint32_t level, int playbackMode);
+  // The level start is suspended between display fields.
+  [[nodiscard]] bool pending() const {
+    return levelStart_.has_value() && levelStart_->pending();
+  }
 
 private:
   std::optional<FieldCall> levelStart_{};

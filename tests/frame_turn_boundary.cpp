@@ -1,15 +1,21 @@
 // Frame turn boundary: per-field order, the guest main loop's title operations and the runtime factories, run against
 // recorders.
 
+#include "debug/dev_warp.h"
+#include "facts/guest_facts.h"
+#include "frame/frame_boundary.h"
 #include "frame/outer_loop.h"
 #include "frame/resident_frame.h"
 #include "game.h"
 #include "game_runtime.h"
 #include "render_mode.h"
+#include "runtime/session.h"
+#include "state_render_check.h"
 #include "testutil.h"
 #include "title_game.h"
 #include "widescreen/guest_widescreen.h"
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
@@ -89,6 +95,9 @@ public:
   }
   void selectPlaybackLevel() override {
     operations.emplace_back("select-playback");
+  }
+  void selectWarpLevel(uint16_t level) override {
+    operations.push_back("select-warp:" + std::to_string(level));
   }
   bool needsInteractiveSelection() const override {
     return needsInteractive;
@@ -460,6 +469,125 @@ void test_post_resident_routes_are_finite_state_transitions() {
   }
 }
 
+// ── dev warp: armed while a level runs, it ends the level and the outer loop starts the chosen one ──
+void test_a_warp_is_armed_only_while_a_level_runs() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
+  ts2::OuterLoopState state{ts2::OuterLoopPhase::pollFrontEnd};
+  ts2::DevWarp warp(core, state);
+  CHECK(warp.arm("warp 3").starts_with("refused"));
+  state.phase = ts2::OuterLoopPhase::resident;
+  core.mem_w16(ts2::facts::kLoopExitReason, 3);
+  CHECK(warp.arm("warp 3").starts_with("refused"));
+  core.mem_w16(ts2::facts::kLoopExitReason, 0);
+  CHECK(warp.arm("warp").starts_with("usage"));
+  CHECK(warp.arm("warp x").starts_with("usage"));
+  CHECK(warp.arm("warp 15").starts_with("refused"));
+  CHECK(warp.arm("warp 3").starts_with("ok"));
+}
+
+void test_an_applied_warp_ends_the_running_level_through_its_exit_fade() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
+  title.activateResident();
+  constexpr uint32_t kStoreA3 = 0xAC071000u; // sw a3, 0x1000(zero)
+  core.mem_w32(ts2::DevWarp::kFadeTo, kStoreA3);
+  core.mem_w32(ts2::DevWarp::kFadeTo + 4u, 0x03E00008u);
+  core.mem_w32(ts2::DevWarp::kFadeTo + 8u, 0u);
+  core.r[29] = 0x801FFF00u;
+  ts2::OuterLoopState state{ts2::OuterLoopPhase::resident};
+  ts2::DevWarp warp(core, state);
+  warp.applyArmed(10);
+  CHECK(!state.warpLevel);
+  CHECK_EQ(core.mem_r16(ts2::facts::kLoopExitReason), 0u);
+
+  CHECK(warp.arm("warp 3").starts_with("ok"));
+  warp.applyArmed(11);
+  CHECK(state.warpLevel == std::optional<uint16_t>{3});
+  CHECK_EQ(core.mem_r16(ts2::facts::kLoopExitReason), ts2::DevWarp::kLeaveToFrontEnd);
+  CHECK_EQ(core.mem_r16(ts2::facts::kExitCountdown), ts2::DevWarp::kExitFadeFields);
+  CHECK_EQ(core.mem_r32(0x80001000u), ts2::DevWarp::kFadeSteps);
+  CHECK(!warp.warpAllowed());
+}
+
+void test_a_taken_warp_starts_its_level_in_place_of_the_games_route() {
+  ts2::OuterLoopState state{ts2::OuterLoopPhase::resident};
+  state.warpLevel = 3;
+  RecordingOuterLoop boundary;
+  boundary.residentIsActive = true;
+  ts2::stepOuterLoop(state, boundary);
+  CHECK(state.phase == ts2::OuterLoopPhase::resident); // the level runs out its exit fade first
+  boundary.residentIsActive = false;
+  boundary.postResidentTransition = ts2::PostResidentTransition::frontEndSetup;
+  ts2::stepOuterLoop(state, boundary);
+  CHECK(state.phase == ts2::OuterLoopPhase::residentSetup);
+  CHECK(!state.warpLevel);
+  CHECK(boundary.operations == std::vector<std::string>({"resident-update", "finish-resident", "select-warp:3"}));
+
+  // The game ending wins over a warp.
+  ts2::OuterLoopState ending{ts2::OuterLoopPhase::resident};
+  ending.warpLevel = 3;
+  RecordingOuterLoop endingBoundary;
+  endingBoundary.residentIsActive = false;
+  endingBoundary.postResidentTransition = ts2::PostResidentTransition::finished;
+  ts2::stepOuterLoop(ending, endingBoundary);
+  CHECK(ending.phase == ts2::OuterLoopPhase::finished);
+  CHECK(!ending.warpLevel);
+}
+
+// ── one deferred display per field: the guest barrier that ended the step already ran it ──
+void test_a_field_displayed_at_the_guest_barrier_is_not_displayed_again() {
+  ts2::test::TitleGame title;
+  title.registerOverrides();
+  Core &core = title.core();
+  constexpr uint32_t kDeferredDisplay = 0x80021028u;
+  constexpr uint32_t kDisplays = 0x80001000u;
+  // Acknowledges the request at 0x800A10F8 and counts the call.
+  const std::array<uint32_t, 8> body{0x3C01800Au, // lui at, 0x800A
+                                     0xAC2010F8u, // sw zero, 0x10F8(at)
+                                     0x8C081000u, // lw t0, 0x1000(zero)
+                                     0u,
+                                     0x25080001u, // addiu t0, t0, 1
+                                     0xAC081000u, // sw t0, 0x1000(zero)
+                                     0x03E00008u, // jr ra
+                                     0u};
+  for (size_t i = 0; i < body.size(); ++i) {
+    core.mem_w32(kDeferredDisplay + static_cast<uint32_t>(i) * 4u, body[i]);
+  }
+  ts2::FrameCallState state(core);
+  state.outerLoop().phase = ts2::OuterLoopPhase::resident;
+  ts2::CoreFrameBoundary boundary(core, state);
+
+  boundary.serviceDeferredDisplay();
+  CHECK_EQ(core.mem_r32(kDisplays), 1u);
+
+  // The play loop's entry block parks in its field barrier, which displays and ends the host step.
+  ts2::session(core).yieldAtFieldBarrier = true;
+  core.r[4] = 2;
+  ts2::test::call(core, 0x8003FA68u);
+  ts2::session(core).yieldAtFieldBarrier = false;
+  CHECK_EQ(core.mem_r32(kDisplays), 2u);
+  boundary.serviceDeferredDisplay();
+  CHECK_EQ(core.mem_r32(kDisplays), 2u);
+  boundary.serviceDeferredDisplay();
+  CHECK_EQ(core.mem_r32(kDisplays), 3u);
+}
+
+// ── the SPU advances one display field per delivered field ──
+void test_a_two_field_frame_advances_the_spu_two_fields() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
+  ts2::FrameCallState state(core);
+  state.outerLoop().phase = ts2::OuterLoopPhase::resident;
+  ts2::CoreFrameBoundary boundary(core, state);
+  title.game().spu_audio.clearFieldReports();
+  boundary.beginLogicFrame(1);
+  boundary.tickDisplayField();
+  boundary.tickDisplayField();
+  boundary.advanceAudio();
+  CHECK_EQ(title.game().spu_audio.fieldReports().size(), 2u);
+}
+
 } // namespace
 
 int main() {
@@ -478,5 +606,10 @@ int main() {
   RUN(outer_loop_front_end_events_are_finite_and_non_fallthrough);
   RUN(resident_mode_selects_both_measured_owners);
   RUN(post_resident_routes_are_finite_state_transitions);
+  RUN(a_warp_is_armed_only_while_a_level_runs);
+  RUN(an_applied_warp_ends_the_running_level_through_its_exit_fade);
+  RUN(a_taken_warp_starts_its_level_in_place_of_the_games_route);
+  RUN(a_field_displayed_at_the_guest_barrier_is_not_displayed_again);
+  RUN(a_two_field_frame_advances_the_spu_two_fields);
   return psx::test::summary();
 }

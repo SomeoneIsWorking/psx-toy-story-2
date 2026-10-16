@@ -13,15 +13,16 @@ framework side is `external/psxport/docs/codemap.md`.
 | `GuestMainBoot` | `game/boot/guest_main_boot.*` | The measured prefix of guest main `0x8007A9E8`, then overlay initialization, stopping before the outer loop |
 | `GraphicsSync` | `game/boot/graphics_sync.*` | Graphics init, resident init, shutdown and field barrier (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`) with no guest-owned VSync |
 | `LevelStartPresentation` | `game/boot/level_start_presentation.*` | The `0x8007C278` override per level start; suppresses only the demo-forced LOADING card |
-| `createFrameDriver`, `ts2::FrameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: one `stepResidentFrame` per step |
+| `createFrameDriver`, `ts2::FrameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: an armed dev warp, then one `stepResidentFrame` per step |
+| `DevWarp` | `game/debug/dev_warp.*` | The control-channel `warp <level>`: legal while a level runs; ends it with the attract demo's exit (reason 4, 46-field fade) and the outer loop starts level cursor `<level>` on the player leg |
 | `stepResidentFrame`, `ResidentFrameBoundary` | `game/frame/resident_frame.*` | The per-frame order: quota, logic frame, input, fields, deferred display, present, update, audio |
-| `CoreFrameBoundary`, `FrameCallState` | `game/frame/frame_boundary.*` | Both boundaries over one Core; the state a turn carries to the next |
-| `stepOuterLoop`, `OuterLoopState` | `game/frame/outer_loop.*` | One finite outer-loop operation per call: front-end poll field, selection, resident update, transition field |
+| `CoreFrameBoundary`, `FrameCallState` | `game/frame/frame_boundary.*` | Both boundaries over one Core; the state a turn carries to the next. One deferred display `0x80021028` per field: the host runs it unless the guest's own barrier did or a guest call is suspended; the SPU advances one field per delivered field |
+| `stepOuterLoop`, `OuterLoopState` | `game/frame/outer_loop.*` | One finite outer-loop operation per call: front-end poll field, selection, resident update, transition field; a taken warp replaces the post-level route |
 | `ResidentPreparation` | `game/frame/resident_preparation.*` | Level start `0x8007BEC4` and the play-loop entry as two resumable calls |
 | `FieldCall` | `game/frame/field_call.*` | A guest call driven across display fields over `psx::cpu::ResumableGuestCall` |
 | `FrameCut` | `game/frame/frame_cut.*` | Whether a sealed record is a cut: level or area change, camera placed afresh (`0x80065CD0`), camera source switch (`0x80068E2C`) |
 | `GuestCall`, `callGuestToReturn`, `callFiniteGuestToReturn`, `guestString` | `game/execution/guest_execution.*` | Typed bounded guest calls, their slice caps, and the guest string reader |
-| graphics-buffer facts | `game/facts/guest_facts.h` | Graphics buffers, OT and packet pool offsets, the VSync(-1) counter; evidence in `docs/re-frontier.md` |
+| guest facts | `game/facts/guest_facts.h` | Graphics buffers, OT and packet pool offsets, the VSync(-1) counter, the play loop's exit reason and countdown; evidence in `docs/re-frontier.md` |
 | `PadOwner` | `game/input/pad_owner.*` | The guest's pad decode `0x8003AC58`, pad init and shutdown; the slot buffers `0x800CF8A0`/`0x800CF8C8` |
 | `InputPhase` | `game/input/recording_phase.*` | The replay key from four guest words that hold still per screen |
 | `FileTransfer` | `game/cd/file_transfer.*` | The whole-file read `0x80082608` from the authenticated disc, and its caller's bounded retry |
