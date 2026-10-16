@@ -1,4 +1,4 @@
-// SLUS_008.93 graphics-buffer facts shared by the boot, frame and render owners.
+// SLUS_008.93 facts shared by the boot, frame, debug and render owners.
 #pragma once
 
 #include <cstdint>
@@ -30,5 +30,10 @@ inline constexpr uint32_t kTexturePageTableBytes = 0x200u;
 
 // VSync(-1) returns this word (0x8008866C lw 0x800A0000-0x2AC); the frame driver mirrors the host field count.
 inline constexpr uint32_t kVSyncQueryCounter = 0x8009FD54u;
+
+// Main loop 0x8007A9E8: the play loop runs while the exit reason (s16) is 0 or its fade countdown (s16) is
+// nonzero; the reason then routes the loop (RE-24).
+inline constexpr uint32_t kLoopExitReason = 0x800A136Eu;
+inline constexpr uint32_t kExitCountdown = 0x800A155Cu;
 
 } // namespace ts2::facts

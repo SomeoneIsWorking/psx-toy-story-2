@@ -1,5 +1,7 @@
 #include "frame/outer_loop.h"
 
+#include <utility>
+
 namespace ts2 {
 namespace {
 
@@ -18,6 +20,39 @@ void beginCurrentMode(OuterLoopState &state, OuterLoopBoundary &boundary) {
     return;
   }
   beginResidentPreparation(state);
+}
+
+void routeAfterResident(OuterLoopState &state, OuterLoopBoundary &boundary, PostResidentTransition next) {
+  switch (next) {
+  case PostResidentTransition::coldRestart:
+    state.phase = OuterLoopPhase::coldRestart;
+    return;
+  case PostResidentTransition::frontEndSetup:
+    state.phase = OuterLoopPhase::frontEndSetup;
+    return;
+  case PostResidentTransition::levelTransition:
+    state.phase = OuterLoopPhase::levelTransition;
+    return;
+  case PostResidentTransition::residentSetup:
+    state.phase = OuterLoopPhase::residentSetup;
+    return;
+  case PostResidentTransition::finished:
+    state.phase = OuterLoopPhase::finished;
+    boundary.shutdown();
+    return;
+  }
+}
+
+// A warp taken here replaces the route the game chose, unless the game is ending.
+void leaveResident(OuterLoopState &state, OuterLoopBoundary &boundary) {
+  const PostResidentTransition next = boundary.finishResident();
+  const std::optional<uint16_t> warp = std::exchange(state.warpLevel, std::nullopt);
+  if (warp && next != PostResidentTransition::finished) {
+    boundary.selectWarpLevel(*warp);
+    beginResidentPreparation(state);
+    return;
+  }
+  routeAfterResident(state, boundary, next);
 }
 
 } // namespace
@@ -148,24 +183,7 @@ void stepOuterLoop(OuterLoopState &state, OuterLoopBoundary &boundary) {
       boundary.updateResident();
       return;
     }
-    switch (boundary.finishResident()) {
-    case PostResidentTransition::coldRestart:
-      state.phase = OuterLoopPhase::coldRestart;
-      return;
-    case PostResidentTransition::frontEndSetup:
-      state.phase = OuterLoopPhase::frontEndSetup;
-      return;
-    case PostResidentTransition::levelTransition:
-      state.phase = OuterLoopPhase::levelTransition;
-      return;
-    case PostResidentTransition::residentSetup:
-      state.phase = OuterLoopPhase::residentSetup;
-      return;
-    case PostResidentTransition::finished:
-      state.phase = OuterLoopPhase::finished;
-      boundary.shutdown();
-      return;
-    }
+    leaveResident(state, boundary);
     return;
 
   case OuterLoopPhase::finished:

@@ -10,6 +10,7 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/boot/graphics_sync.cpp
   game/boot/level_start_presentation.cpp
   game/cd/file_transfer.cpp
+  game/debug/dev_warp.cpp
   game/execution/guest_execution.cpp
   game/frame/field_call.cpp
   game/frame/frame_cut.cpp

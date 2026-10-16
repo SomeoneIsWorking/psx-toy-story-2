@@ -10,6 +10,7 @@
 #include "stock_vsync.h"
 
 #include <cstdint>
+#include <cstdio>
 
 namespace ts2 {
 
@@ -36,6 +37,8 @@ public:
     return inputPhase_.of(core);
   }
   const psx::game::HostIdentity *hostIdentity() const override;
+  bool titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) override;
+  psx::game::TitleDevWarp *devWarp(Core &core) const override;
 
 private:
   psx::hle::StockLibgte libgte_;
