@@ -8,6 +8,7 @@
 #include "frame/resident_frame.h"
 #include "game.h"
 #include "game_runtime.h"
+#include "native_fmv.h"
 #include "render_mode.h"
 #include "runtime/session.h"
 #include "state_render_check.h"
@@ -15,6 +16,7 @@
 #include "title_game.h"
 #include "widescreen/guest_widescreen.h"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <optional>
@@ -588,6 +590,33 @@ void test_a_two_field_frame_advances_the_spu_two_fields() {
   CHECK_EQ(title.game().spu_audio.fieldReports().size(), 2u);
 }
 
+// ── a movie owns the picture while it plays ──
+class BlankSectors final : public psx::movie::SectorSource {
+public:
+  bool readRaw(uint32_t, uint8_t *out) override {
+    std::fill_n(out, 2352, uint8_t{0});
+    return true;
+  }
+};
+
+void test_a_frame_under_a_movie_presents_nothing_of_its_own() {
+  ts2::test::TitleGame title;
+  Core &core = title.core();
+  BlankSectors sectors;
+  CHECK(title.game().fmv.begin(sectors, 0, 16u * 2048u));
+  CHECK(title.game().fmv.presenting());
+  ts2::FrameCallState state(core);
+  state.outerLoop().phase = ts2::OuterLoopPhase::introMovies;
+  ts2::CoreFrameBoundary boundary(core, state);
+  const uint64_t fence = title.game().presentation.fence();
+  const int presents = title.game().display.frame();
+  const uint64_t ticks = title.game().timing.emulatedCpuTicks();
+  boundary.present(1);
+  CHECK_EQ(title.game().presentation.fence(), fence + 1u);
+  CHECK_EQ(title.game().display.frame(), presents);
+  CHECK(title.game().timing.emulatedCpuTicks() > ticks);
+}
+
 } // namespace
 
 int main() {
@@ -611,5 +640,6 @@ int main() {
   RUN(a_taken_warp_starts_its_level_in_place_of_the_games_route);
   RUN(a_field_displayed_at_the_guest_barrier_is_not_displayed_again);
   RUN(a_two_field_frame_advances_the_spu_two_fields);
+  RUN(a_frame_under_a_movie_presents_nothing_of_its_own);
   return psx::test::summary();
 }
