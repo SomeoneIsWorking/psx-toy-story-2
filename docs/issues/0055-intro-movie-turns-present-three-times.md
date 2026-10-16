@@ -1,7 +1,7 @@
 ---
 id: 55
 title: Intro-movie turns present three times
-status: open
+status: fixed
 symptom: 1,356 presents without an in-between and a third of the whole run's intervals during the intro movies
 tags: fmv,presentation
 state_items: S007,S011
@@ -19,7 +19,17 @@ shown record, and every movie frame is three presents: the movie's own (`Fmv::pr
 movie is on screen, then replays the movie over it. The guest draws no record during a movie, so each commit
 presents device VRAM with no in-between, and the replay re-presents the movie image.
 
-## Gap
-Presenting a movie field once (commit without presenting while the movie owns the picture, no replay) changes the
-movie path's presents and pacing and needs a real-window look at all four movies; not done here. The vsync misses in
-the same movies are psxport issue 0160.
+## Cause
+`game/frame/frame_boundary.cpp:CoreFrameBoundary::present` committed the guest frame through `FramePresenter` (paced
+and presented device VRAM) while the movie owned the picture, then replayed the movie frame over it with
+`Fmv::replayLastFrame`.
+
+## Fix
+While `Fmv::presenting()`, the boundary advances its delivered guest fields through `Timing::advanceDisplayFields`
+and rotates the fence with `FramePresenter::commitUnpresented`; the movie's own paced present is the field's only
+present (psxport issue 0160 paces it). `Fmv::replayLastFrame` is removed. Test:
+`tests/frame_turn_boundary.cpp` `a_frame_under_a_movie_presents_nothing_of_its_own` (fails with the commit path: one
+present).
+
+Real-window check (2026-10-16): one present per movie frame (1,347 movie frames, 1,347 movie presents), the run's
+`records: without_in_between=5` (was 1,356), missed vsyncs in the four movies 1 (was 473).
