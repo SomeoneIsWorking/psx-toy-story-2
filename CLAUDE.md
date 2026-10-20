@@ -75,7 +75,7 @@ module replacement, coherent rendering/audio, and sustained frame progression.
 modular, and DRY. Build outputs live under `build/`; bounded diagnostic artifacts live under stable
 `scratch/` children. Game assets are never committed or packaged.
 
-Run `uv run --frozen python tools/verify.py`: build plus the product's hermetic C++ boundary tests,
-the executable's help contract, and clang-format/clang-tidy/cpp_policy.
-To see the game rather than gate it, run `tools/headless_run.py` (with `--pad` for a recorded
+There are no unit tests or gates. Build with `CXX=clang++ CC=clang uv run --frozen python
+external/psxport/tools/port/consumer_build.py --build build/agent --target toystory2_port`.
+To see the game, run `tools/headless_run.py` (with `--pad` for a recorded
 replay) against your own disc.

@@ -27,18 +27,13 @@ the optional positional argument:
 `build/player/bin/toystory2_port`, and starts that product. It does not run tests or generate guest
 code.
 
-The gate is build + the product's hermetic C++ boundary tests + the executable's own help contract +
-clang-format/clang-tidy/cpp_policy:
+There are no unit tests or gates. Build with Clang:
 
 ```sh
-CXX=clang++ CC=clang CMAKE_BUILD_PARALLEL_LEVEL=6 uv run --frozen python tools/verify.py
+CXX=clang++ CC=clang uv run --frozen python external/psxport/tools/port/consumer_build.py --build build/agent --target toystory2_port
 ```
 
-`tools/verify.py` uses psxport's shared consumer verifier to configure the Ninja
-`build/verify` tree, build the product, run that CTest suite, and inspect the linked execution
-boundary. Maintained dependency overrides use `PSXPORT_LIGHTREC_DIR` and
-`PSXPORT_LIGHTNING_PREFIX`, matching the framework verifier. This asset-free check does not establish
-gameplay compatibility.
+Maintained dependency overrides use `PSXPORT_LIGHTREC_DIR` and `PSXPORT_LIGHTNING_PREFIX`.
 
 To look at the game, drive it, or capture frames, use the maintainer tool: `tools/headless_run.py`
 (one bounded headless run of `--frames` presentation-fence steps, with `--tap` for an exact-frame schedule, `--pad` to replay a recorded
