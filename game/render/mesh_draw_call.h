@@ -34,7 +34,7 @@ struct MeshDrawResult {
 struct MeshDrawInputs {
   std::vector<MemoryRange> ranges;
   std::uint32_t meshBytes = 0; // the mesh through its terminator
-  std::uint32_t primitives = 0;
+  std::uint32_t packets = 0;
   // Halfwords inside the ranges that the saved copy holds as 0: the end of a list the drawer pops from, so a
   // render that wants more than the call used finds the list ended.
   std::vector<std::uint32_t> terminators;

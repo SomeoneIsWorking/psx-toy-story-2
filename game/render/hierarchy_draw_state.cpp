@@ -168,10 +168,12 @@ void HierarchyStateRender::render(const psx::present::StateInterval &states, psx
     HierarchyDrawer::run(EmitMemory(core_, host), state.header.call);
   }
   psx::present::DrawModeTracker drawMode;
-  psx::present::PacketChainWalker(EmitMemory(core_, host), psx::present::PacketBound::within({state.header.cursor, state.header.arenaBytes}))
-      .emitBuckets({state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
-                   drawMode,
-                   sink);
+  psx::present::PacketChainWalker(EmitMemory(core_, host),
+                                  psx::present::PacketBound::within({state.header.cursor, state.header.arenaBytes}))
+      .emitBuckets(
+          {state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
+          drawMode,
+          sink);
 }
 
 } // namespace ts2
