@@ -138,17 +138,12 @@ bool Runtime::titleCommand(Core &core, const psx::game::TitleCommandLine &input,
   if (std::string_view(input.command) != "warp") {
     return false;
   }
-  auto *driver = dynamic_cast<FrameDriver *>(core.game->frameDriver.get());
-  if (driver == nullptr) {
-    lucent::error("ts2-runtime", "warp arrived with no Toy Story 2 frame driver");
-    std::abort();
-  }
-  std::fprintf(reply, "%s\n", driver->devWarp().arm(input.args).c_str());
+  std::fprintf(reply, "%s\n", core.game->frameDriverAs<FrameDriver>().devWarp().arm(input.args).c_str());
   return true;
 }
 
 psx::game::TitleDevWarp *Runtime::devWarp(Core &core) const {
-  auto *driver = dynamic_cast<FrameDriver *>(core.game->frameDriver.get());
+  auto *driver = core.game->frameDriverIf<FrameDriver>();
   return driver != nullptr ? &driver->devWarp() : nullptr;
 }
 
