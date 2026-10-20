@@ -4,7 +4,7 @@
 #include "emit_memory.h"
 #include "facts/guest_facts.h"
 #include "gte_control.h"
-#include "host_ordering_table.h"
+#include "packet_chains.h"
 #include "render/ordering_tables.h"
 #include "state_bytes.h"
 
@@ -65,12 +65,11 @@ bool draw(Core &core, const MeshState &state, const GteControl &control, psx::pr
       return false;
     }
   }
-  psx::present::emitHostOrderingTable(host,
-                                      psx::present::HostOrderingTable{state.header.tableBase,
-                                                                      facts::kOrderingTableBuckets,
-                                                                      psx::present::OtSlot{OrderingTables::kTableId, 0},
-                                                                      state.header.primitives},
-                                      sink);
+  psx::present::DrawModeTracker drawMode;
+  psx::present::PacketChainWalker(EmitMemory(core, host), psx::present::PacketBound::count(state.header.primitives))
+      .emitBuckets({state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
+                   drawMode,
+                   sink);
   return true;
 }
 

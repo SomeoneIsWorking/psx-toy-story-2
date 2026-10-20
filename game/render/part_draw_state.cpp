@@ -3,7 +3,7 @@
 #include "core.h"
 #include "emit_memory.h"
 #include "gte_control.h"
-#include "host_ordering_table.h"
+#include "packet_chains.h"
 #include "render/ordering_tables.h"
 #include "state_bytes.h"
 
@@ -131,12 +131,11 @@ void PartStateRender::render(const psx::present::StateInterval &states, psx::pre
     psx::present::writeGteControl(core_.gte(), control);
     PartFaceDrawers::run(EmitMemory(core_, host), state.header.call);
   }
-  psx::present::emitHostOrderingTable(host,
-                                      psx::present::HostOrderingTable{state.header.tableBase,
-                                                                      facts::kOrderingTableBuckets,
-                                                                      psx::present::OtSlot{OrderingTables::kTableId, 0},
-                                                                      state.header.arenaBytes / 4u},
-                                      sink);
+  psx::present::DrawModeTracker drawMode;
+  psx::present::PacketChainWalker(EmitMemory(core_, host), psx::present::PacketBound::within({state.header.cursor, state.header.arenaBytes}))
+      .emitBuckets({state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
+                   drawMode,
+                   sink);
 }
 
 } // namespace ts2
