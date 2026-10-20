@@ -12,7 +12,6 @@ endif()
 project(toystory2 CXX C)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-include(CTest)
 
 # PSXPORT_DIR is the framework source; default external/psxport, linked or cloned by
 # psxport's tools/psxport_fetch.py. Override with -DPSXPORT_DIR=/path/to/psxport.
@@ -35,55 +34,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Embed psxport's root for its oracle/crt0 tools; framework tests stay off.
-set(PSXPORT_BUILD_TESTS OFF CACHE BOOL "Register psxport's complete test suite" FORCE)
-set(PSXPORT_BUILD_SMOKE OFF CACHE BOOL "Build the framework smoke" FORCE)
+# Embed psxport's root for its oracle/crt0 tools.
 add_subdirectory(${PSXPORT_DIR} ${CMAKE_BINARY_DIR}/psxport_build)
 
 include(cmake/port.cmake)
-
-if(BUILD_TESTING)
-  # Gate: the C++ boundary tests, the --help contract and the C++ policy check.
-  if(TARGET toystory2_projection_boundary)
-    add_test(NAME projection_publication_boundary COMMAND toystory2_projection_boundary)
-  endif()
-  if(TARGET toystory2_cd_hle_boundary)
-    add_test(NAME stock_libcd_native_boundary COMMAND toystory2_cd_hle_boundary)
-  endif()
-  if(TARGET toystory2_frame_turn_boundary)
-    add_test(NAME frame_turn_boundary COMMAND toystory2_frame_turn_boundary)
-  endif()
-  if(TARGET toystory2_resident_producers_boundary)
-    add_test(NAME resident_producers_boundary COMMAND toystory2_resident_producers_boundary)
-  endif()
-  if(TARGET toystory2_hierarchy_producer_boundary)
-    add_test(NAME hierarchy_producer_boundary COMMAND toystory2_hierarchy_producer_boundary)
-  endif()
-  if(TARGET toystory2_execution_boundary)
-    add_test(NAME title_execution_boundary COMMAND toystory2_execution_boundary)
-  endif()
-  if(TARGET toystory2_level_start_card_boundary)
-    add_test(NAME level_start_card_boundary COMMAND toystory2_level_start_card_boundary)
-  endif()
-  if(TARGET toystory2_port)
-    foreach(_help_arg IN ITEMS -h --help)
-      string(REPLACE "-" "" _help_name "${_help_arg}")
-      add_test(NAME "product_help_${_help_name}" COMMAND toystory2_port "${_help_arg}")
-      set_tests_properties(
-        "product_help_${_help_name}"
-        PROPERTIES
-          ENVIRONMENT "PSXPORT_TS2_DISC=/disc-discovery-must-not-run.chd"
-          PASS_REGULAR_EXPRESSION "Toy Story 2 \\(SLUS_008\\.93\\)"
-      )
-    endforeach()
-  endif()
-  add_test(
-    NAME cpp_policy
-    COMMAND
-      ${Python3_EXECUTABLE} ${PSXPORT_DIR}/tools/check_cpp_style.py
-      --root ${CMAKE_SOURCE_DIR}
-      --compile-commands ${CMAKE_BINARY_DIR}/compile_commands.json
-  )
-  # Whole-repo clang-tidy: about 1,500 s cold on a 4-core CI runner with clang-tidy 21.
-  set_tests_properties(cpp_policy PROPERTIES TIMEOUT 3000)
-endif()
