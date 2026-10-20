@@ -24,20 +24,7 @@
 namespace ts2 {
 namespace {
 
-// crt0 at the PS-EXE entry 0x80082D60. No bias instruction sits between the stack-top lw and the or into
-// sp, and InitHeap is reached with the heap size and base in registers only.
-constexpr psx::game::Crt0Image kCrt0{
-    .bss = {0x800A1070u, 0x800D12C0u},      // sw zero @ 0x80082D70, sltu bound @ 0x80082D78
-    .stackTopWordAddress = 0x80082E10u,     // lw v0 @ 0x80082DA4
-    .stackReserveWordAddress = 0x800A0764u, // lw v1 @ 0x80082DC4
-    .heapBase = 0x800D12C0u,                // sll/srl mask @ 0x80082DB8
-    .heapSizeStoreAddress = 0,
-    .heapBaseStoreAddress = 0,
-    .globalPointer = 0x800A0CD8u, // addiu gp @ 0x80082DE4
-    .libcInitEntry = 0x80089344u, // jal @ 0x80082DEC, the A(39h) thunk
-    .crt0Entry = 0x80082D60u,
-    .stackBias = {.declared = true, .bytes = 0},
-};
+constexpr psx::game::Crt0Image kCrt0{.entry = 0x80082D60u};
 
 // Each parity's window runs from OT bucket 4 (+0x2C4, published at gp+0x3E4) to the next buffer, spanning the
 // +0x1924 packet pool.
@@ -156,7 +143,7 @@ bool Runtime::titleCommand(Core &core, const psx::game::TitleCommandLine &input,
     lucent::error("ts2-runtime", "warp arrived with no Toy Story 2 frame driver");
     std::abort();
   }
-  std::fprintf(reply, "%s\n", driver->devWarp().arm(input.line).c_str());
+  std::fprintf(reply, "%s\n", driver->devWarp().arm(input.args).c_str());
   return true;
 }
 

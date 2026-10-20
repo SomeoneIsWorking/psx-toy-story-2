@@ -1,5 +1,6 @@
 #pragma once
 
+#include "command_args.h"
 #include "frame/outer_loop.h"
 #include "game_runtime.h"
 
@@ -32,8 +33,8 @@ public:
   // A level's play loop is running and nothing has asked it to end.
   bool warpAllowed() const override;
 
-  // Parses and arms one command line; the returned text answers the client.
-  std::string arm(const char *line);
+  // The returned text answers the client.
+  std::string arm(const psx::debug::CommandArgs &args);
   // Ends the running level for the armed request at a frame boundary.
   void applyArmed(uint32_t frame);
 
