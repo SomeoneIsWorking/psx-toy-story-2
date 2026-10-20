@@ -3,11 +3,11 @@
 namespace ts2 {
 namespace {
 
-const GuestWidescreenProjection kPolicy;
+const psx::present::GuestWidescreenProjection kPolicy;
 
 } // namespace
 
-const GuestWidescreenProjection &guestWidescreenPolicy() {
+const psx::present::GuestWidescreenProjection &guestWidescreenPolicy() {
   return kPolicy;
 }
 

@@ -7,6 +7,6 @@ class Core;
 namespace ts2 {
 
 // Whether the picture is wider than 4:3.
-const GuestWidescreenProjection &guestWidescreenPolicy();
+const psx::present::GuestWidescreenProjection &guestWidescreenPolicy();
 
 } // namespace ts2
