@@ -5,7 +5,7 @@
 #include "emit_memory.h"
 #include "facts/guest_facts.h"
 #include "gte_control.h"
-#include "host_ordering_table.h"
+#include "packet_chains.h"
 #include "render/ordering_tables.h"
 #include "state_bytes.h"
 
@@ -167,12 +167,11 @@ void HierarchyStateRender::render(const psx::present::StateInterval &states, psx
     psx::present::writeGteControl(core_.gte(), state.header.control);
     HierarchyDrawer::run(EmitMemory(core_, host), state.header.call);
   }
-  psx::present::emitHostOrderingTable(host,
-                                      psx::present::HostOrderingTable{state.header.tableBase,
-                                                                      facts::kOrderingTableBuckets,
-                                                                      psx::present::OtSlot{OrderingTables::kTableId, 0},
-                                                                      state.header.arenaBytes / 4u},
-                                      sink);
+  psx::present::DrawModeTracker drawMode;
+  psx::present::PacketChainWalker(EmitMemory(core_, host), psx::present::PacketBound::within({state.header.cursor, state.header.arenaBytes}))
+      .emitBuckets({state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
+                   drawMode,
+                   sink);
 }
 
 } // namespace ts2
