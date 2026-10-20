@@ -154,7 +154,8 @@ void CoreFrameBoundary::advanceAudio() {
 void CoreFrameBoundary::present(int guestFields) {
   if (core_.game->fmv.presenting()) {
     // The movie paces and presents its own frames; the guest's fields still elapse.
-    core_.game->timing.advanceDisplayFields({guestFields, 1}, core_.game->framePacer.fieldRateMilliHz(core_));
+    core_.game->timing.advanceDisplayFields({guestFields, 1},
+                                           psx::frame::fieldRateMilliHz(core_.game->timing.displayFieldRate()));
     core_.game->presentation.commitUnpresented();
     return;
   }
