@@ -43,7 +43,7 @@ void LevelStartPresentation::arm(Core &core, int playbackMode) {
 }
 
 bool LevelStartPresentation::firstPresentationInstalled(Core &core) {
-  const auto image = core.currentImageIdentity(levelStartPresentationAddress());
+  const auto image = core.imageCatalog().resolve(levelStartPresentationAddress());
   if (!image) {
     lucent::error("ts2-level-start",
                   "refused to arm the level start's first presentation: no resident image identity at 0x{:08X}",
