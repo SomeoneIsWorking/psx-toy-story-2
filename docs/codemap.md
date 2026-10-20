@@ -51,7 +51,7 @@ framework side is `external/psxport/docs/codemap.md`.
 | launcher | `tools/run.py`, `tools/resolve_disc.py`, `tools/extract_exe.py`, `tools/discdump.py` | Disc resolution and extraction for the zero-argument launch |
 | run control | `tools/headless_run.py`, `tools/execution_ledger.py`, `tools/route.py` | Hidden-window runs, replays, the run-end ledger |
 | RE evidence | `tools/ram_image.py`, `tools/ghidra_xref.py`, `tools/re_xref.py` | The RAM image Ghidra imports and address xrefs |
-| framework fetch | `tools/run.py` | The `external/psxport` fetch (psxport `tools/psxport_fetch.py`) |
+| framework fetch | `bootstrap.py` | The `external/psxport` fetch (psxport `tools/psxport_fetch.py`) |
 | replays | `replays/` | Player route through Andy's House, pause, area transition, level exit, intro skip, movie viewer, memory card |
 
 ## Where new work goes
