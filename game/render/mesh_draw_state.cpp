@@ -23,7 +23,7 @@ struct StateHeader {
   MeshDrawCall call;
   std::uint32_t tableBase = 0; // bucket 0 of the ordering table the drawer links into
   std::uint32_t meshBytes = 0;
-  std::uint32_t primitives = 0;
+  std::uint32_t packets = 0;
   std::uint32_t ranges = 0;
   GteControl control{};
 };
@@ -50,7 +50,7 @@ struct MeshState {
   // The same mesh drawn by the same drawer into the same slot table.
   bool sameDraw(const MeshState &other) const {
     return header.call.drawer == other.header.call.drawer && header.call.args[0] == other.header.call.args[0] &&
-           header.meshBytes == other.header.meshBytes && header.primitives == other.header.primitives;
+           header.meshBytes == other.header.meshBytes;
   }
 };
 
@@ -66,10 +66,11 @@ bool draw(Core &core, const MeshState &state, const GteControl &control, psx::pr
     }
   }
   psx::present::DrawModeTracker drawMode;
-  psx::present::PacketChainWalker(EmitMemory(core, host), psx::present::PacketBound::count(state.header.primitives))
-      .emitBuckets({state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
-                   drawMode,
-                   sink);
+  psx::present::PacketChainWalker(EmitMemory(core, host), psx::present::PacketBound::count(state.header.packets))
+      .emitBuckets(
+          {state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
+          drawMode,
+          sink);
   return true;
 }
 
@@ -102,7 +103,7 @@ MeshDrawRecorder::MeshDrawRecorder(Core &core, const MeshDrawCall &call, const M
   header.call = call;
   header.tableBase = table - slot->index * sizeof(std::uint32_t);
   header.meshBytes = inputs.meshBytes;
-  header.primitives = inputs.primitives;
+  header.packets = inputs.packets;
   header.ranges = static_cast<std::uint32_t>(inputs.ranges.size());
   header.control = psx::present::readGteControl(core.gte());
   std::vector<std::byte> bytes = readRanges(guest, inputs.ranges);

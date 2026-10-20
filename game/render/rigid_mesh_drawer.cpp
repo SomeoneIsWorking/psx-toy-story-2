@@ -339,7 +339,7 @@ std::optional<MeshDrawInputs> RigidMeshDrawer::plan(const EmitMemory &m, const M
     }
   }
   MeshDrawInputs inputs;
-  inputs.primitives = stream->primitives;
+  inputs.packets = stream->primitives;
   inputs.meshBytes = stream->end - call.args[0];
   std::vector<MemoryRange> &ranges = inputs.ranges;
   ranges.push_back({call.args[0], stream->end - call.args[0]});

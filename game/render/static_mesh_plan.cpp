@@ -146,7 +146,7 @@ std::optional<Gathered> Gather::run(std::optional<std::uint32_t> freeIds) {
   add(out.releasedCursor, (slotted + nodes_ + out.freeIds + kReleasedSlack + 1u) * 2u);
 
   out.inputs.meshBytes = stream->end - mesh;
-  out.inputs.primitives = stream->primitives;
+  out.inputs.packets = nodes_ + out.freeIds;
   out.inputs.ranges = unionOf(std::move(ranges_));
   out.inputs.terminators.push_back(out.freeCursor + out.freeIds * 2u);
   return out;
