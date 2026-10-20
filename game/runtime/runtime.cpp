@@ -126,7 +126,7 @@ bool Runtime::sealedFrameIsCut(Core &core) const {
   return session(core).frameCut.isCut();
 }
 
-const GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {
+const psx::present::GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {
   return &guestWidescreenPolicy();
 }
 
