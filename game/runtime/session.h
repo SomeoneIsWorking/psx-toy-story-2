@@ -4,6 +4,7 @@
 #include "boot/graphics_sync.h"
 #include "boot/guest_main_boot.h"
 #include "boot/level_start_presentation.h"
+#include "emit_memory.h"
 #include "fmv/movie_player.h"
 #include "frame/frame_cut.h"
 #include "game_runtime.h"
@@ -31,6 +32,8 @@ public:
   ActorIncarnations actorIncarnations;
   ActorProducers actorProducers;
   psx::present::StateProducerTable stateProducers;
+  // The host memory a state render runs its body over, kept so renders allocate nothing.
+  psx::present::Kept<psx::present::HostMemory> renderMemory;
   // True while a guest call suspended between display fields (the front-end poll) runs; its field
   // barrier then exits the executor at the field boundary so the host can present.
   bool yieldAtFieldBarrier = false;
