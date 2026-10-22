@@ -7,6 +7,7 @@
 #include "gte_control.h"
 #include "packet_chains.h"
 #include "render/ordering_tables.h"
+#include "runtime/session.h"
 #include "state_bytes.h"
 
 #include <cstring>
@@ -148,27 +149,27 @@ void HierarchyStateRender::render(const psx::present::StateInterval &states, psx
     }
   }
 
-  HostMemory host;
-  host.zero(kScratch, kScratchBytes);
-  host.zero(state.header.tableBase, facts::kOrderingTableBuckets * sizeof(std::uint32_t));
-  host.zero(state.header.cursor, state.header.arenaBytes);
+  const psx::present::Kept<HostMemory>::Use host(session(core_).renderMemory);
+  host->zero(kScratch, kScratchBytes);
+  host->zero(state.header.tableBase, facts::kOrderingTableBuckets * sizeof(std::uint32_t));
+  host->zero(state.header.cursor, state.header.arenaBytes);
   for (std::uint32_t index = 0; index != state.ranges.size(); ++index) {
     const MemoryRange &range = state.ranges[index];
     const std::span<const std::byte> bytes = state.range(index);
     if (range.address - kScratch < kScratchBytes) {
-      host.write(range.address, bytes.data(), range.size);
+      host->write(range.address, bytes.data(), range.size);
     } else {
-      host.provide(range.address, bytes);
+      host->provide(range.address, bytes);
     }
   }
 
   {
     const psx::present::GteGuard guard(core_.gte());
     psx::present::writeGteControl(core_.gte(), state.header.control);
-    HierarchyDrawer::run(EmitMemory(core_, host), state.header.call);
+    HierarchyDrawer::run(EmitMemory(core_, *host), state.header.call);
   }
   psx::present::DrawModeTracker drawMode;
-  psx::present::PacketChainWalker(EmitMemory(core_, host),
+  psx::present::PacketChainWalker(EmitMemory(core_, *host),
                                   psx::present::PacketBound::within({state.header.cursor, state.header.arenaBytes}))
       .emitBuckets(
           {state.header.tableBase, facts::kOrderingTableBuckets, psx::present::OtSlot{OrderingTables::kTableId, 0}},
