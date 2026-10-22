@@ -102,10 +102,10 @@ struct Depth {
 void link(const EmitMemory &m, Quad drawn, Depth depth) {
   const std::uint32_t quad = drawn.at;
   const std::uint32_t p = m.mem_r32(facts::kPacketCursor);
-  m.mem_w32(p + 0x08u, m.mem_r32(kScreen));
-  m.mem_w32(p + 0x14u, m.mem_r32(kScreen + 4u));
-  m.mem_w32(p + 0x2Cu, m.mem_r32(kScreen + 8u));
-  m.mem_w32(p + 0x20u, m.mem_r32(kScreen + 0xCu));
+  m.storeVertex(p + 0x08u, m.loadVertex(kScreen));
+  m.storeVertex(p + 0x14u, m.loadVertex(kScreen + 4u));
+  m.storeVertex(p + 0x2Cu, m.loadVertex(kScreen + 8u));
+  m.storeVertex(p + 0x20u, m.loadVertex(kScreen + 0xCu));
   m.mem_w32(p + 0x04u, m.mem_r32(quad + 0x1Cu));
   m.mem_w32(p + 0x10u, m.mem_r32(quad + 0x20u));
   m.mem_w32(p + 0x28u, m.mem_r32(quad + 0x24u));
