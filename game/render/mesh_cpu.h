@@ -67,6 +67,10 @@ public:
   std::uint32_t gteRead(std::uint32_t reg) const {
     return m_.core().gte().readData(reg);
   }
+  // SXY FIFO entry `entry`: the GTE hands screen words out only with their places.
+  psx::gte::ProjectedVertex gteScreen(std::uint32_t entry) const {
+    return m_.core().gte().projected(entry);
+  }
   void gteWrite(std::uint32_t reg, std::uint32_t value) const {
     m_.core().gte().writeData(reg, value);
   }

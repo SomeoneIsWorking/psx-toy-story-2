@@ -211,7 +211,7 @@ Outcome Walk::primitive(const Kind &kind, std::uint32_t s0, std::int32_t &count)
     gte().writeData(psx::gte::kVz1, vertexZ(corner[2]));
     gte().writeData(psx::gte::kVxy2, m_.mem_r32(corner[0]));
     gte().writeData(psx::gte::kVz2, m_.mem_r32(corner[0] + 4u));
-    second = gte().readData(psx::gte::kSxy2);
+    second = gte().projected(2).word();
   } else {
     gte().writeData(psx::gte::kVxy2, m_.mem_r32(corner[0]));
     gte().writeData(psx::gte::kVz2, m_.mem_r32(corner[0] + 4u));
@@ -240,10 +240,10 @@ Outcome Walk::primitive(const Kind &kind, std::uint32_t s0, std::int32_t &count)
   std::array<std::uint32_t, 4> xy{};
   std::array<std::uint32_t, 4> tests{};
   if (kind.quad) {
-    xy = {gte().readData(psx::gte::kSxy2), second, gte().readData(psx::gte::kSxy0), gte().readData(psx::gte::kSxy1)};
+    xy = {gte().projected(2).word(), second, gte().projected(0).word(), gte().projected(1).word()};
     tests = {xy[3], xy[0], second, xy[2]};
   } else {
-    xy = {gte().readData(psx::gte::kSxy2), gte().readData(psx::gte::kSxy1), gte().readData(psx::gte::kSxy0), 0u};
+    xy = {gte().projected(2).word(), gte().projected(1).word(), gte().projected(0).word(), 0u};
     tests = {xy[2], xy[0], xy[1], 0u};
   }
   const std::span<const std::uint32_t> corners = std::span(tests).first(kind.quad ? 4u : 3u);

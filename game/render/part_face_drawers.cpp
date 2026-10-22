@@ -180,9 +180,9 @@ std::optional<Projected> projectQuad(Walk &walk, std::uint32_t head, bool storeU
   if (!nearEnough(walk)) {
     return std::nullopt;
   }
-  const std::uint32_t xy0 = walk.gte.readData(psx::gte::kSxy0);
-  const std::uint32_t xy1 = walk.gte.readData(psx::gte::kSxy1);
-  const std::uint32_t xy2 = walk.gte.readData(psx::gte::kSxy2);
+  const std::uint32_t xy0 = walk.gte.projected(0).word();
+  const std::uint32_t xy1 = walk.gte.projected(1).word();
+  const std::uint32_t xy2 = walk.gte.projected(2).word();
   walk.gte.execute(psx::gte::kNclip);
   walk.gte.writeData(psx::gte::kVxy0, xy3);
   walk.gte.writeData(psx::gte::kVz0, zuv3);
@@ -198,7 +198,7 @@ std::optional<Projected> projectQuad(Walk &walk, std::uint32_t head, bool storeU
       return std::nullopt;
     }
   }
-  const std::uint32_t screen3 = walk.gte.readData(psx::gte::kSxy2);
+  const std::uint32_t screen3 = walk.gte.projected(2).word();
   walk.gte.execute(psx::gte::kAvsz4);
   Projected face{.xy = {xy0, xy1, xy2, screen3},
                  .colours = {head, colour1, colour2, colour3},
@@ -230,9 +230,9 @@ std::optional<Projected> projectTriangle(Walk &walk, std::uint32_t head) {
   if (!nearEnough(walk)) {
     return std::nullopt;
   }
-  const std::uint32_t xy0 = walk.gte.readData(psx::gte::kSxy0);
-  const std::uint32_t xy1 = walk.gte.readData(psx::gte::kSxy1);
-  const std::uint32_t xy2 = walk.gte.readData(psx::gte::kSxy2);
+  const std::uint32_t xy0 = walk.gte.projected(0).word();
+  const std::uint32_t xy1 = walk.gte.projected(1).word();
+  const std::uint32_t xy2 = walk.gte.projected(2).word();
   walk.gte.execute(psx::gte::kNclip);
   const std::uint32_t front = walk.gte.readData(psx::gte::kMac0) ^ walk.facing;
   walk.gte.execute(psx::gte::kAvsz3);

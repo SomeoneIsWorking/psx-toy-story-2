@@ -214,16 +214,16 @@ void Walk::projectQuad(const Handler &handler, std::uint32_t stride) {
   c.gteWrite(psx::gte::kVz1, c.a3);
   c.gteWrite(psx::gte::kVxy2, c.lw(c.t0));
   c.gteWrite(psx::gte::kVz2, c.lw(c.t0 + 4u));
-  c.t6 = c.gteRead(psx::gte::kSxy2);
+  c.t6 = c.gteScreen(2).word();
   c.v1 = c.lw(kRowMax);
   c.at = c.lw(kRowMin);
   c.gteOp(psx::gte::kRtpt);
   stash(c.lw(c.s0 + stride), true);
   c.sw(kVertices + 12u, c.t3);
   c.sw(kVertices + 8u, c.t2);
-  c.t4 = c.gteRead(psx::gte::kSxy2);
-  c.t5 = c.gteRead(psx::gte::kSxy1);
-  c.t7 = c.gteRead(psx::gte::kSxy0);
+  c.t4 = c.gteScreen(2).word();
+  c.t5 = c.gteScreen(1).word();
+  c.t7 = c.gteScreen(0).word();
   if (!handler.noCull) {
     c.gteOp(psx::gte::kNclip);
   }
@@ -247,9 +247,9 @@ void Walk::projectTriangle(std::uint32_t stride) {
   c.sw(kVertices, c.t0);
   c.sw(kVertices + 4u, c.t1);
   c.sw(kVertices + 8u, c.t2);
-  c.t4 = c.gteRead(psx::gte::kSxy2);
-  c.t5 = c.gteRead(psx::gte::kSxy1);
-  c.t6 = c.gteRead(psx::gte::kSxy0);
+  c.t4 = c.gteScreen(2).word();
+  c.t5 = c.gteScreen(1).word();
+  c.t6 = c.gteScreen(0).word();
   c.gteOp(psx::gte::kNclip);
   c.at = c.lw(kRowMin);
   c.v1 = c.lw(kRowMax);

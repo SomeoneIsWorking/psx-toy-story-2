@@ -133,9 +133,9 @@ void TriangleSplit::projectMiddles() {
   c.v1 = middleXy(c.s0, c.s2);
   c.gteOp(0x4A280030u);
   c.sw(c.t9 + 112, c.v1);
-  c.t0 = c.gteRead(12);
-  c.t1 = c.gteRead(13);
-  c.t2 = c.gteRead(14);
+  c.t0 = c.gteScreen(0).word();
+  c.t1 = c.gteScreen(1).word();
+  c.t2 = c.gteScreen(2).word();
   c.sw(c.t9 + 44, c.gteRead(17));
   c.sw(c.t9 + 60, c.gteRead(18));
   c.sw(c.t9 + 52, c.gteRead(19));
@@ -146,7 +146,7 @@ void TriangleSplit::projectMiddles() {
   c.sw(c.t9 + 96, c.t1);
   c.sw(c.t9 + 88, c.t2);
   c.s0 = ((c.t1 & 0xFFFFu) < 512u ? 2u : 0u) | (c.t1 < kYLimit ? 1u : 0u);
-  const std::uint32_t last = c.gteRead(14);
+  const std::uint32_t last = c.gteScreen(2).word();
   c.sw(c.t9 + 48, c.gteRead(19));
   c.sw(c.t9 + 84, last);
   if (c.s0 == 3u) {

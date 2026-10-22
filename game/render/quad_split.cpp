@@ -149,9 +149,9 @@ void QuadSplit::projectMiddles() {
   c.sw(c.t9 + 112, c.v1);
   c.a0 = middleXy(c.s2, c.s6);
   c.sw(c.t9 + 120, c.a0);
-  c.t0 = c.gteRead(12);
-  c.t1 = c.gteRead(13);
-  c.t2 = c.gteRead(14);
+  c.t0 = c.gteScreen(0).word();
+  c.t1 = c.gteScreen(1).word();
+  c.t2 = c.gteScreen(2).word();
   c.sw(c.t9 + 44, c.gteRead(17));
   c.sw(c.t9 + 56, c.gteRead(18));
   c.sw(c.t9 + 60, c.gteRead(19));
@@ -164,8 +164,8 @@ void QuadSplit::projectMiddles() {
   c.sw(c.t9 + 92, c.t1);
   c.sw(c.t9 + 96, c.t2);
   c.s0 = ((c.t2 & 0xFFFFu) < 512u ? 2u : 0u) | (c.t2 < kYLimit ? 1u : 0u);
-  const std::uint32_t second0 = c.gteRead(12);
-  const std::uint32_t second1 = c.gteRead(13);
+  const std::uint32_t second0 = c.gteScreen(0).word();
+  const std::uint32_t second1 = c.gteScreen(1).word();
   c.sw(c.t9 + 48, c.gteRead(17));
   c.sw(c.t9 + 52, c.gteRead(18));
   c.sw(c.t9 + 84, second0);

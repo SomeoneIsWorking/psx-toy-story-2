@@ -71,14 +71,14 @@ Average rotAverage4(const EmitMemory &m, psx::cpu::Gte &gte, std::uint32_t quad)
   gte.writeData(psx::gte::kVxy2, m.mem_r32(quad + 8u));
   gte.writeData(psx::gte::kVz2, m.mem_r32(quad + 0xCu));
   gte.execute(psx::gte::kRtpt);
-  m.mem_w32(kScreen, gte.readData(psx::gte::kSxy0));
-  m.mem_w32(kScreen + 4u, gte.readData(psx::gte::kSxy1));
-  m.mem_w32(kScreen + 8u, gte.readData(psx::gte::kSxy2));
+  m.storeVertex(kScreen, gte.projected(0));
+  m.storeVertex(kScreen + 4u, gte.projected(1));
+  m.storeVertex(kScreen + 8u, gte.projected(2));
   const std::uint32_t flag = gte.readControl(psx::gte::kFlag);
   gte.writeData(psx::gte::kVxy0, m.mem_r32(quad + 0xCu));
   gte.writeData(psx::gte::kVz0, m.mem_r32(quad + 0x10u));
   gte.execute(psx::gte::kRtps);
-  m.mem_w32(kScreen + 0xCu, gte.readData(psx::gte::kSxy2));
+  m.storeVertex(kScreen + 0xCu, gte.projected(2));
   gte.execute(psx::gte::kAvsz4);
   return {gte.readData(psx::gte::kOtz), flag};
 }
