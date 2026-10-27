@@ -35,7 +35,6 @@ constexpr psx::gpu::GuestPacketPoolWindows kPacketPool{
 };
 
 constexpr psx::game::HostIdentity kHostIdentity{
-    .cardEnvVar = "PSXPORT_TS2_CARD",
     .cardDefaultPath = "scratch/saves/toystory2.mcr",
 };
 
@@ -132,19 +131,6 @@ const psx::present::GuestWidescreenProjection *Runtime::guestWidescreenProjectio
 
 const psx::game::HostIdentity *Runtime::hostIdentity() const {
   return &kHostIdentity;
-}
-
-bool Runtime::titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) {
-  if (std::string_view(input.command) != "warp") {
-    return false;
-  }
-  std::fprintf(reply, "%s\n", core.game->frameDriverAs<FrameDriver>().devWarp().arm(input.args).c_str());
-  return true;
-}
-
-psx::game::TitleDevWarp *Runtime::devWarp(Core &core) const {
-  auto *driver = core.game->frameDriverIf<FrameDriver>();
-  return driver != nullptr ? &driver->devWarp() : nullptr;
 }
 
 } // namespace ts2

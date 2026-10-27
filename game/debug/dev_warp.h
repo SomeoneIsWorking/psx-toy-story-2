@@ -1,8 +1,6 @@
 #pragma once
 
-#include "command_args.h"
 #include "frame/outer_loop.h"
-#include "game_runtime.h"
 
 #include <cstdint>
 #include <optional>
@@ -12,10 +10,10 @@ class Core;
 
 namespace ts2 {
 
-// The control-channel `warp <level>` request. At the next frame boundary it ends the running level the way the
+// The debug menu's `warp <level>` request. At the next frame boundary it ends the running level the way the
 // attract demo leaves its level (exit reason 4 and the play loop's 46-field fade out), and the outer loop then
 // starts level cursor <level> on the player leg through the level start 0x8007BEC4. Legal while a level runs.
-class DevWarp final : public psx::game::TitleDevWarp {
+class DevWarp final {
 public:
   // Cursor positions of the level table 0x8009DEF8; its 16th entry is the 0xFFFFFFFF terminator.
   inline static constexpr int kLevelCount = 15;
@@ -27,14 +25,11 @@ public:
 
   DevWarp(Core &core, OuterLoopState &outerLoop) : core_(core), outerLoop_(outerLoop) {}
 
-  int areaCount() const override {
-    return kLevelCount;
-  }
   // A level's play loop is running and nothing has asked it to end.
-  bool warpAllowed() const override;
+  bool warpAllowed() const;
 
-  // The returned text answers the client.
-  std::string arm(const psx::debug::CommandArgs &args);
+  // Arms the request; the returned text answers the client. The debug menu checked the range and warpAllowed().
+  std::string arm(std::uint32_t level);
   // Ends the running level for the armed request at a frame boundary.
   void applyArmed(uint32_t frame);
 

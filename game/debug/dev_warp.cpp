@@ -21,19 +21,9 @@ bool DevWarp::warpAllowed() const {
          core_.mem_r16(facts::kLoopExitReason) == 0;
 }
 
-std::string DevWarp::arm(const psx::debug::CommandArgs &args) {
-  const std::optional<uint32_t> level = args.number(1);
-  if (!level || args.size() != 2) {
-    return "usage: warp <level>";
-  }
-  if (*level >= static_cast<uint32_t>(kLevelCount)) {
-    return lucent::format("refused: level {} is out of range (0..{})", *level, kLevelCount - 1);
-  }
-  if (!warpAllowed()) {
-    return "refused: a warp is legal only while a level is running";
-  }
-  armed_ = static_cast<uint16_t>(*level);
-  return lucent::format("ok: warp armed for level {}", *level);
+std::string DevWarp::arm(std::uint32_t level) {
+  armed_ = static_cast<uint16_t>(level);
+  return lucent::format("ok: warp armed for level {}", level);
 }
 
 void DevWarp::applyArmed(uint32_t frame) {

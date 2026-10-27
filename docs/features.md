@@ -68,4 +68,4 @@ with no row runs on the framework alone.
 
 | hop | joins | owner |
 |---|---|---|
-| 1 | psxport F-SAVE.1 | `game/runtime/runtime.cpp:Runtime::hostIdentity` — card `PSXPORT_TS2_CARD` (`scratch/saves/toystory2.mcr`) |
+| 1 | psxport F-SAVE.1 | `game/runtime/runtime.cpp:Runtime::hostIdentity` — card `PSXPORT_CARD` (`scratch/saves/toystory2.mcr`) |
