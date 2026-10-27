@@ -135,7 +135,6 @@ def poll_ledger(process: subprocess.Popen, port: int) -> Ledger | None:
         try:
             client = LiveClient(port, timeout=5.0)
             last = parse_ledger(client.send("guest"))
-            client.close()
         except (OSError, ValueError, RuntimeError) as error:
             print(f"[poll] {type(error).__name__}: {error}", file=sys.stderr, flush=True)
         time.sleep(0.2)
