@@ -1,5 +1,6 @@
 #pragma once
 
+#include "debug/debug_menu.h"
 #include "game_runtime.h"
 #include "input/recording_phase.h"
 #include "stock_dma_callbacks.h"
@@ -10,7 +11,6 @@
 #include "stock_vsync.h"
 
 #include <cstdint>
-#include <cstdio>
 
 namespace ts2 {
 
@@ -37,10 +37,12 @@ public:
     return inputPhase_.of(core);
   }
   const psx::game::HostIdentity *hostIdentity() const override;
-  bool titleCommand(Core &core, const psx::game::TitleCommandLine &input, std::FILE *reply) override;
-  psx::game::TitleDevWarp *devWarp(Core &core) const override;
+  const psx::game::TitleDebugMenu &debugMenu() const override {
+    return debugMenu_;
+  }
 
 private:
+  DebugMenu debugMenu_;
   psx::hle::StockLibgte libgte_;
   psx::hle::StockVSync vsync_;
   psx::hle::StockLibgpu libgpu_;
