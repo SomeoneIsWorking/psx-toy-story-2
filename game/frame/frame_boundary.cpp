@@ -173,8 +173,8 @@ void CoreFrameBoundary::initializeFrontEnd() {
 void CoreFrameBoundary::restartColdFrontEnd() {
   core_.mem_w32(kPlaybackMode, 0);
   core_.mem_w32(kFrontEndEvent, 0);
-  // 0x8007BC74(10,0) decodes the LEVEL00 corpus and needs more than one guest-turn budget, so it runs
-  // as a finite initialization transaction.
+  // 0x8007BC74(10,0) decodes the front-end set, then runs MEMORY 0x800D9704(2) and (3), two screens with their
+  // own field loops, to completion without presenting them (issue 0057).
   const std::array loadArguments{10u, 0u};
   callMemoryDispatcher(loadArguments[0], loadArguments[1], "cold front-end asset load");
   state_.introMovieStep_ = kIntroMovieSteps.size();
@@ -517,7 +517,7 @@ void CoreFrameBoundary::callFiniteInitialization(uint32_t address, std::string_v
       core_, {address, 0x8007A9E8u, arguments, std::nullopt, owner}, kFiniteInitializationSliceLimit);
 }
 
-// Argument 10 only loads assets, so it is a finite call; 4, 2 and 0/1 draw screens and span fields.
+// Argument 10 runs as one finite call (issue 0057); 4, 2 and 0/1 draw screens and span fields.
 void CoreFrameBoundary::callMemoryDispatcher(uint32_t a0, uint32_t a1, std::string_view owner) {
   const std::array arguments{a0, a1, 0u, 0u};
   callFiniteGuestToReturn(
