@@ -21,9 +21,11 @@ decode). Trace it on the console oracle's frames before any change.
 
 ## Oracle verdict, 2026-10-28
 The full-console oracle (`psxport tools/oracle/console.py`, SCPH-1001 BIOS, same CHD, no input), captured every
-field from 3400 to 4300 (`scratch/player-bugs-6/oracle/fine*/frames.jsonl`, `boundary.png`):
+field from 3400 to 4300 (`scratch/player-bugs-6/oracle/fine*/frames.jsonl`, picture hashes per field; the pictures of
+fields 3974-4034 are `scratch/player-bugs-6/oracle/review/f*.png`):
 - The first movie (`acti.str`) changes picture every 2 fields to its last change at field 3716, which is black.
-- The screen stays black until field 4030, the first `dlogo.str` picture: 314 fields (5.2 s) on the console.
+- The screen stays black until field 4030, the first `dlogo.str` picture: 314 fields (5.2 s) on the console. The one
+  hash change inside it, at field 3977, is the display width going from 350 to 280 on a black picture.
 - `dlogo.str` then changes picture every 6 fields (5 or 7 at a few points), 100 ms: 10 frames a second.
 
 The stream says the same: its XA audio clocks the read at 150 sectors a second and each video frame owns 15 sectors
@@ -34,6 +36,7 @@ first frame's 15-sector slot (100 ms).
 
 Shown on HEAD, paced hidden run (ires 0, fps60 1, 3840x2160 sink, `PSXPORT_DEBUG=presentseq`, load 5.3,
 `scratch/player-bugs-6/paced-movie`): fence 1643 at 244 ms after 1642, then 1644-1734 every 100.1-100.5 ms; every
-other interval in the 45 s is under 40 ms except fence 3 (80 ms, issue 0057's decode).
+other interval in the 45 s is under 40 ms except fence 3 (80 ms, issue 0057's decode). A review run without
+`PSXPORT_NOAUDIO` (`scratch/player-bugs-6/review-audio`) shows the same: fence 1643 at +243 ms, then about 100.3 ms.
 
 No change: the movie plays at its source rate, and nothing at its start is a held picture.
