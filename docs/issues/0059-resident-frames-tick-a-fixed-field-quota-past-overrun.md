@@ -1,12 +1,11 @@
 ---
 id: 59
 title: Resident frames tick a fixed field quota when the update overruns it
-status: resolved
+status: open
 symptom: none observed; found reading the field barrier while reviewing psxport Timing::vsyncFields
 tags: pacing,frame
 created: 2026-10-28
 updated: 2026-10-28
-resolution: owned frame loop; the quota is the guest's requested count
 ---
 
 ## What the code does
@@ -24,8 +23,8 @@ toward the next frame, so a steady loop still releases every n fields. Callers: 
 (`li a0,2`; in attract playback `0x800A120C` the loop then overwrites the count with 2) and `0x8007C2D4`/`0x8007C3D8`
 (n = 1).
 
-## Resolution
-The resident loop is owned (psxport `docs/workspace/WORKSPACE.md`, "Each title owns its frame loop"): the driver
-publishes the guest's requested count, n = 2, and runs the deferred display before the update, as the barrier does.
-An update that overruns n fields is console time the owned loop does not emulate, so it is not published as a
-longer step. No code change beyond naming the quota's source in `CoreFrameBoundary::displayFieldQuota`.
+## Not resolved by owning the loop
+Committing only the requested count does not shorten an overrunning frame: the pacer ends an interval at the guest's
+time, and Crash Bash showed the fixed count leaving the VBlank callbacks and SPU advances behind the guest clock with
+every later field off the grid (psx-crash-bash issue 0045). Retail publishes the fields that elapsed, clamped to 4.
+Whether the resident loop's overrunning frames leave the field grid here has not been measured.
