@@ -25,23 +25,6 @@ constexpr uint32_t kElapsedFields = 0x800A1174u;
 constexpr uint32_t kFieldAccumulator = 0x800A14D4u;
 constexpr uint32_t kDeferredDisplayRequest = 0x800A10F8u;
 
-// The caller-saved registers the guest expects back from its own body must be handed back untouched.
-class GuestRegisters {
-public:
-  explicit GuestRegisters(Core &core) : core_(core) {
-    std::copy(std::begin(core.r), std::end(core.r), saved_.begin());
-  }
-  ~GuestRegisters() {
-    std::copy(saved_.begin(), saved_.end(), std::begin(core_.r));
-  }
-  GuestRegisters(const GuestRegisters &) = delete;
-  GuestRegisters &operator=(const GuestRegisters &) = delete;
-
-private:
-  Core &core_;
-  std::array<uint32_t, 32> saved_{};
-};
-
 void dispatchGuest(Core &core,
                    uint32_t address,
                    const std::array<uint32_t, 4> &arguments = {},
@@ -140,14 +123,7 @@ void completeOwnedFieldBarrier(Core *core) {
         "ts2-frame", "field barrier requested {} fields after the native owner supplied only {}", requested, elapsed);
     std::abort();
   }
-  core->mem_w32(kElapsedFields, elapsed);
-  core->mem_w32(kFieldAccumulator, 0);
-  core->mem_w32(kDeferredDisplayRequest, 1);
-  dispatchGuest(*core, 0x80021028u);
-  if (core->mem_r32(kDeferredDisplayRequest) != 0) {
-    lucent::error("ts2-frame", "native field barrier did not receive deferred-display acknowledgement");
-    std::abort();
-  }
+  publishFieldBarrier(*core, elapsed);
   if (yieldsToHost) {
     session(*core).displayedAtBarrier = true;
     psx::cpu::requestExecutionExit(*core, psx::cpu::ExecutionExitReason::FrameBoundary);
@@ -251,6 +227,18 @@ void shutdownGraphicsWithoutGuestVSync(Core *core) {
 }
 
 } // namespace
+
+void publishFieldBarrier(Core &core, uint32_t elapsed) {
+  const GuestRegisters registers(core);
+  core.mem_w32(kElapsedFields, elapsed);
+  core.mem_w32(kFieldAccumulator, 0);
+  core.mem_w32(kDeferredDisplayRequest, 1);
+  dispatchGuest(core, 0x80021028u);
+  if (core.mem_r32(kDeferredDisplayRequest) != 0) {
+    lucent::error("ts2-frame", "native field barrier did not receive deferred-display acknowledgement");
+    std::abort();
+  }
+}
 
 void GraphicsSync::install(Core &core) {
   psx::cpu::installNativeOverride(core, 0x8003A218u, "graphics-init", initializeGraphicsWithoutGuestVSync);

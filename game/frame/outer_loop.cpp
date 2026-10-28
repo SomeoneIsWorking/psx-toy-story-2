@@ -61,12 +61,13 @@ void stepOuterLoop(OuterLoopState &state, OuterLoopBoundary &boundary) {
   switch (state.phase) {
   case OuterLoopPhase::coldSetup:
     boundary.initializeFrontEnd();
-    state.phase = OuterLoopPhase::introMovies;
+    state.phase = OuterLoopPhase::coldRestart;
     return;
 
   case OuterLoopPhase::coldRestart:
-    boundary.restartColdFrontEnd();
-    state.phase = OuterLoopPhase::introMovies;
+    if (boundary.stepColdFrontEnd()) {
+      state.phase = OuterLoopPhase::introMovies;
+    }
     return;
 
   case OuterLoopPhase::introMovies:

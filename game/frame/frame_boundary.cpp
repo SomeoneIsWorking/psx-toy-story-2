@@ -155,7 +155,7 @@ void CoreFrameBoundary::present(int guestFields) {
   if (core_.game->fmv.presenting()) {
     // The movie paces and presents its own frames; the guest's fields still elapse.
     core_.game->timing.advanceDisplayFields({guestFields, 1},
-                                           psx::frame::fieldRateMilliHz(core_.game->timing.displayFieldRate()));
+                                            psx::frame::fieldRateMilliHz(core_.game->timing.displayFieldRate()));
     core_.game->presentation.commitUnpresented();
     return;
   }
@@ -167,20 +167,26 @@ void CoreFrameBoundary::present(int guestFields) {
 
 void CoreFrameBoundary::initializeFrontEnd() {
   session(core_).guestMainBoot.finishOverlayInitialization(core_);
-  restartColdFrontEnd();
 }
 
-void CoreFrameBoundary::restartColdFrontEnd() {
-  core_.mem_w32(kPlaybackMode, 0);
-  core_.mem_w32(kFrontEndEvent, 0);
-  // 0x8007BC74(10,0) decodes the front-end set, then runs MEMORY 0x800D9704(2) and (3), two screens with their
-  // own field loops, to completion without presenting them (issue 0057).
-  const std::array loadArguments{10u, 0u};
-  callMemoryDispatcher(loadArguments[0], loadArguments[1], "cold front-end asset load");
+// 0x8007BC74(10,0) decodes the front-end set, then shows MEMORY screens 2 and 3 (MemoryScreen), a field per step.
+bool CoreFrameBoundary::stepColdFrontEnd() {
+  if (!state_.fieldCall().pending()) {
+    core_.mem_w32(kPlaybackMode, 0);
+    core_.mem_w32(kFrontEndEvent, 0);
+    const std::array arguments{10u, 0u};
+    state_.fieldCall().begin(core_, {kMemoryDispatcher, 0x8007A9E8u, arguments, std::nullopt, "cold front-end load"});
+    session(core_).yieldAtFieldBarrier = true;
+  }
+  if (state_.fieldCall().advance(core_) != FieldCall::Step::returned) {
+    return false;
+  }
+  session(core_).yieldAtFieldBarrier = false;
   state_.introMovieStep_ = kIntroMovieSteps.size();
   if (core_.mem_r32(kFrontEndEvent) != 9) {
     state_.introMovieStep_ = 0;
   }
+  return true;
 }
 
 // Intro: MEMORY status 2, 0, 1, then the queued screen. Each plays a movie inside one guest call, so a

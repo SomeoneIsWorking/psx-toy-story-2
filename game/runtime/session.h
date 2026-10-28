@@ -7,6 +7,7 @@
 #include "emit_memory.h"
 #include "fmv/movie_player.h"
 #include "frame/frame_cut.h"
+#include "front_end/memory_screen.h"
 #include "game_runtime.h"
 #include "input/pad_owner.h"
 #include "overlay/overlay_images.h"
@@ -28,6 +29,7 @@ public:
   audio::SoundBankProcessor soundBank;
   PadOwner pad;
   fmv::GuestMoviePlayer moviePlayer;
+  MemoryScreen memoryScreen;
   FrameCut frameCut;
   ActorIncarnations actorIncarnations;
   ActorProducers actorProducers;

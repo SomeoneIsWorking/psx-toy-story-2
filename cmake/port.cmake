@@ -21,6 +21,7 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/frame/resident_frame.cpp
   game/frame/resident_preparation.cpp
   game/fmv/movie_player.cpp
+  game/front_end/memory_screen.cpp
   game/input/pad_owner.cpp
   game/input/recording_phase.cpp
   game/overlay/overlay_images.cpp

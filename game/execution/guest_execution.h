@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -37,6 +38,19 @@ std::uint32_t callFiniteGuestToReturn(Core &core, const GuestCall &call, std::ui
 
 // Publish `$a0`-`$a3` and `$sp + 16`; `ResumableGuestCall::begin` takes only entry and return address.
 void publishCallArguments(Core &core, const GuestCall &call);
+
+// Saves every GPR and puts them back at scope end, so a native body hands the guest's registers back untouched.
+class GuestRegisters {
+public:
+  explicit GuestRegisters(Core &core);
+  ~GuestRegisters();
+  GuestRegisters(const GuestRegisters &) = delete;
+  GuestRegisters &operator=(const GuestRegisters &) = delete;
+
+private:
+  Core &core_;
+  std::array<std::uint32_t, 32> saved_{};
+};
 
 inline constexpr std::size_t kMaxGuestPath = 128u;
 

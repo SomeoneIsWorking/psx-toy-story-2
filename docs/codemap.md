@@ -11,7 +11,7 @@ framework side is `external/psxport/docs/codemap.md`.
 | `ts2::Runtime` | `game/runtime/runtime.*` | The `GameRuntime`: crt0 (`Crt0Boot`), stock libgte/VSync/libgpu/DMA-callback/libcd/pad objects bound in `registerOverrides`, the title overrides, session, frame driver, packet pool, state producers, cut, widescreen policy, input phase, host identity |
 | `ts2::Session`, `session` | `game/runtime/session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations, the state-producer table |
 | `GuestMainBoot` | `game/boot/guest_main_boot.*` | The measured prefix of guest main `0x8007A9E8`, then overlay initialization, stopping before the outer loop |
-| `GraphicsSync` | `game/boot/graphics_sync.*` | Graphics init, resident init, shutdown and field barrier (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`) with no guest-owned VSync |
+| `GraphicsSync`, `publishFieldBarrier` | `game/boot/graphics_sync.*` | Graphics init, resident init, shutdown and field barrier (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`) with no guest-owned VSync |
 | `LevelStartPresentation` | `game/boot/level_start_presentation.*` | The `0x8007C278` override per level start; suppresses only the demo-forced LOADING card |
 | `createFrameDriver`, `ts2::FrameDriver` | `game/frame/frame_driver.*` | The `FrameDriver`: an armed dev warp, then one `stepResidentFrame` per step |
 | `DevWarp` | `game/debug/dev_warp.*` | The control-channel `warp <level>`: legal while a level runs; ends it with the attract demo's exit (reason 4, 46-field fade) and the outer loop starts level cursor `<level>` on the player leg |
@@ -21,7 +21,7 @@ framework side is `external/psxport/docs/codemap.md`.
 | `ResidentPreparation` | `game/frame/resident_preparation.*` | Level start `0x8007BEC4` and the play-loop entry as two resumable calls |
 | `FieldCall` | `game/frame/field_call.*` | A guest call driven across display fields over `psx::cpu::ResumableGuestCall` |
 | `FrameCut` | `game/frame/frame_cut.*` | Whether a sealed record is a cut: level or area change, camera placed afresh (`0x80065CD0`), camera source switch (`0x80068E2C`) |
-| `GuestCall`, `callGuestToReturn`, `callFiniteGuestToReturn`, `guestString` | `game/execution/guest_execution.*` | Typed bounded guest calls, their slice caps, and the guest string reader |
+| `GuestCall`, `callGuestToReturn`, `callFiniteGuestToReturn`, `GuestRegisters`, `guestString` | `game/execution/guest_execution.*` | Typed bounded guest calls, their slice caps, and the guest string reader |
 | guest facts | `game/facts/guest_facts.h` | Graphics buffers, OT and packet pool offsets, the VSync(-1) counter, the play loop's exit reason and countdown; evidence in `docs/re-frontier.md` |
 | `PadOwner` | `game/input/pad_owner.*` | The guest's pad decode `0x8003AC58`, pad init and shutdown; the slot buffers `0x800CF8A0`/`0x800CF8C8` |
 | `InputPhase` | `game/input/recording_phase.*` | The replay key from four guest words that hold still per screen |
@@ -30,6 +30,7 @@ framework side is `external/psxport/docs/codemap.md`.
 | `LevelSlotImage`, `SharedSlotImage` | `game/overlay/{level,shared}_slot_image.*` | The retail module tables of the two slots |
 | `SoundBankProcessor` | `game/audio/sound_bank.*` | The VAB bank routine `0x8007F108` under the bounded resume loop |
 | `GuestMoviePlayer` | `game/fmv/movie_player.*` | The FMV overlay's player `0x800D7088`: one movie frame per turn, the retail return value |
+| `MemoryScreen` | `game/front_end/memory_screen.*` | The MEMORY overlay's still screen `0x800D9704`: one field per turn, Start ends it through its own fade |
 | `guestWidescreenPolicy` | `game/widescreen/guest_widescreen.*` | 16:9 from the configured aspect |
 | `ResidentWidescreenCull` | `game/widescreen/resident_widescreen.*` | Widened visibility window `0x80027AF0` and screen rectangle `0x80010000` |
 | `OrderingTables` | `game/render/ordering_tables.*` | Names both OTs so entries carry their bucket |

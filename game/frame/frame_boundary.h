@@ -54,7 +54,7 @@ public:
   void present(int guestFields) override;
 
   void initializeFrontEnd() override;
-  void restartColdFrontEnd() override;
+  bool stepColdFrontEnd() override;
   bool stepIntroMovies() override;
   void finishColdFrontEnd() override;
   void prepareFrontEnd() override;
