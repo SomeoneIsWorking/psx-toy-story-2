@@ -14,8 +14,8 @@ the selection screen, 1 elsewhere), publishes that count as the elapsed fields `
 guest time the previous update took.
 
 ## What retail does
-The barrier `0x8003FA68(n)`, read whole from its disassembly (`tools/disasm.py` over the resident image,
-`scratch/frame-loops/ts2_ram.bin`; Ghidra's decompile lacks the tail). Inside EnterCriticalSection/ExitCriticalSection
+The barrier `0x8003FA68(n)`, read whole from its disassembly (`tools/disasm.py` over a RAM image built from the
+EXE; Ghidra's decompile lacks the tail). Inside EnterCriticalSection/ExitCriticalSection
 (`0x80089414`/`0x80089424`, syscalls 1 and 2) it waits while the VBlank accumulator `gp+0x7FC` (`0x800A14D4`) is
 below n, publishes the accumulator to `0x800A1174` and clears it, clamps the published count to 4, sets the deferred
 display request `0x800A10F8` to 1 and spins until the next VBlank's `0x80021028` clears it. That VBlank also counts
