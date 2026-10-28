@@ -92,7 +92,7 @@ FieldCall &FrameCallState::fieldCall() {
 }
 
 int CoreFrameBoundary::displayFieldQuota() const {
-  // The resident update and the selection screen both wait two fields per iteration.
+  // The resident loop's barrier(2) at 0x8007AEAC; the selection screen 0x80041240 publishes 2 as well.
   const bool pacedAtTwoFields = state_.outerLoop_.phase == OuterLoopPhase::resident ||
                                 state_.outerLoop_.phase == OuterLoopPhase::interactiveSelection;
   return pacedAtTwoFields ? 2 : 1;

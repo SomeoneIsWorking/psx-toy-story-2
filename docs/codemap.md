@@ -3,6 +3,8 @@
 Where Toy Story 2's code lives and what each owner owns. Feature chains are in `docs/features.md`; the
 framework side is `external/psxport/docs/codemap.md`.
 
+Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s update and replaces its barrier `0x8003FA68(2)`; front-end screens' barriers publish their requested count (`completeOwnedFieldBarrier`).
+
 ## Owners
 
 | owner | path | owns |
