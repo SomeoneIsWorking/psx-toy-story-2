@@ -52,7 +52,8 @@ public:
   virtual ~OuterLoopBoundary() = default;
 
   virtual void initializeFrontEnd() = 0;
-  virtual void restartColdFrontEnd() = 0;
+  // One display field of the cold front-end load and its two MEMORY screens; true once it has returned.
+  virtual bool stepColdFrontEnd() = 0;
   // One display field of the intro movies; true once finished.
   virtual bool stepIntroMovies() = 0;
   virtual void finishColdFrontEnd() = 0;

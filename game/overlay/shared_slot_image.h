@@ -23,11 +23,12 @@ struct SharedSlotImage {
       "ddd2e8bf26b62ae2d2414d9251ae1a38ed5d5813640f244eab08584c55267f9d";
   static constexpr std::string_view kFmvRetailSha256 =
       "acaf125051be7ea96e41593bc1c1a40b695449924e990bda855cec38f91e8ee3";
+  static constexpr std::string_view kMemoryIdentityName = "BITS/MEMORY.BIN";
   static constexpr std::string_view kFmvIdentityName = "FMV/FMV.BIN";
 
   static std::vector<OverlayModule> retailModules() {
     return {
-        {kMemoryGuestPath, "\\BITS\\MEMORY.BIN;1", "BITS/MEMORY.BIN", kMemoryFileBytes, kMemoryRetailSha256},
+        {kMemoryGuestPath, "\\BITS\\MEMORY.BIN;1", kMemoryIdentityName, kMemoryFileBytes, kMemoryRetailSha256},
         {kFmvGuestPath, "\\FMV\\FMV.BIN;1", kFmvIdentityName, kFmvFileBytes, kFmvRetailSha256},
     };
   }

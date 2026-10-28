@@ -3,10 +3,20 @@
 #include "core.h"
 #include "resumable_guest_call.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <iterator>
 #include <lucent/log.h>
 
 namespace ts2 {
+
+GuestRegisters::GuestRegisters(Core &core) : core_(core) {
+  std::copy(std::begin(core.r), std::end(core.r), saved_.begin());
+}
+
+GuestRegisters::~GuestRegisters() {
+  std::copy(saved_.begin(), saved_.end(), std::begin(core_.r));
+}
 
 void publishCallArguments(Core &core, const GuestCall &call) {
   if (call.stackArgument) {

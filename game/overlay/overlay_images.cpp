@@ -88,6 +88,9 @@ void observeFileLoad(Core *core) {
   if (slot->module(*module).identityName == SharedSlotImage::kFmvIdentityName) {
     session(*core).moviePlayer.install(*core);
   }
+  if (slot->module(*module).identityName == SharedSlotImage::kMemoryIdentityName) {
+    session(*core).memoryScreen.install(*core);
+  }
   const std::optional<psx::cpu::ImageIdentity> identity = slot->activeIdentity();
   if (!identity) {
     lucent::error("ts2-overlay", "published image at 0x{:08X} has no active identity", destination);
