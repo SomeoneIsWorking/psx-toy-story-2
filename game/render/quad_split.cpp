@@ -51,7 +51,6 @@ constexpr std::array<Band, 4> kBands{{
 
 constexpr unsigned kFanBelow = 15; // fewer short edges than all four cut the quad as a fan
 constexpr std::uint32_t kFullMask = 0xFFFFu;
-constexpr std::uint32_t kYLimit = 0x00F00000u;
 
 constexpr SplitFormat kTexturedQuad{PacketKind::Textured,
                                     &subdivideQuadTextured,
@@ -163,7 +162,7 @@ void QuadSplit::projectMiddles() {
   c.sw(c.t9 + 80, c.t0);
   c.sw(c.t9 + 92, c.t1);
   c.sw(c.t9 + 96, c.t2);
-  c.s0 = ((c.t2 & 0xFFFFu) < 512u ? 2u : 0u) | (c.t2 < kYLimit ? 1u : 0u);
+  c.s0 = shownAxes(c.t2);
   const std::uint32_t second0 = c.gteScreen(0).word();
   const std::uint32_t second1 = c.gteScreen(1).word();
   c.sw(c.t9 + 48, c.gteRead(17));

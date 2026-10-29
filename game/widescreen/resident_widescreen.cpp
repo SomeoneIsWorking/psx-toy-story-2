@@ -26,6 +26,9 @@ constexpr std::uint32_t kScreenRectPublisherLeaf = 0x80010000u;
 constexpr std::int32_t kScreenRectLeft = -4096;
 constexpr std::int32_t kScreenRectRight = 4096;
 
+// The retail screen width the subdividers test against (`sltiu ...,0x200`).
+constexpr std::int32_t kRetailColumns = 512;
+
 void objectCullOverride(Core *core) {
   ResidentWidescreenCull::widenCullRect(*core);
   psx::cpu::callOriginalToReturn(
@@ -47,6 +50,11 @@ void ResidentWidescreenCull::install(Core &core) {
 
 bool ResidentWidescreenCull::active(const Core &core) {
   return core.game != nullptr && core.game->guestDisplay.plan().widescreen();
+}
+
+ScreenColumns ResidentWidescreenCull::drawnColumns(const Core &core) {
+  const std::int32_t margin = active(core) ? core.game->guestDisplay.plan().presentationHorizontalMargin : 0;
+  return {.left = -margin, .right = kRetailColumns + margin};
 }
 
 void ResidentWidescreenCull::widenCullRect(Core &core) {

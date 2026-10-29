@@ -45,7 +45,6 @@ constexpr std::array<Band, 3> kBands{{
 
 constexpr unsigned kFanBelow = 7; // fewer short edges than all three cut the triangle as a fan
 constexpr std::uint32_t kFullMask = 0xFFFFu;
-constexpr std::uint32_t kYLimit = 0x00F00000u;
 constexpr std::uint32_t kAverageDepths = 0x4B58002Du; // AVSZ3
 
 constexpr SplitFormat kTexturedTriangle{PacketKind::Textured,
@@ -145,7 +144,7 @@ void TriangleSplit::projectMiddles() {
   c.sw(c.t9 + 80, c.t0);
   c.sw(c.t9 + 96, c.t1);
   c.sw(c.t9 + 88, c.t2);
-  c.s0 = ((c.t1 & 0xFFFFu) < 512u ? 2u : 0u) | (c.t1 < kYLimit ? 1u : 0u);
+  c.s0 = shownAxes(c.t1);
   const std::uint32_t last = c.gteScreen(2).word();
   c.sw(c.t9 + 48, c.gteRead(19));
   c.sw(c.t9 + 84, last);

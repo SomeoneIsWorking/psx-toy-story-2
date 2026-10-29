@@ -56,7 +56,7 @@ with no row runs on the framework alone.
 | hop | joins | owner |
 |---|---|---|
 | 1 | psxport F-WIDE.1 | `game/widescreen/guest_widescreen.cpp:guestWidescreenPolicy` — 16:9 from the configured aspect |
-| 2 | psxport F-WIDE.2 | `game/widescreen/resident_widescreen.cpp:ResidentWidescreenCull` — visibility window `0x80027AF0` and screen rectangle `0x80010000` widened |
+| 2 | psxport F-WIDE.2 | `game/widescreen/resident_widescreen.cpp:ResidentWidescreenCull` — visibility window `0x80027AF0` and screen rectangle `0x80010000` widened; `drawnColumns` is the window the native subdividers (`SplitEngine`) cull children against |
 
 ## F-FMV
 
