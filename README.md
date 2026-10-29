@@ -4,6 +4,18 @@ This repository targets the USA PlayStation release of *Toy Story 2: Buzz Lighty
 (`SLUS_008.93`). It combines title-owned native subsystems with psxport's runtime Lightrec executor;
 the authenticated user-supplied game image remains data.
 
+## Screenshots
+
+Captured from the running port (4:3, attract demos).
+
+![Buzz in the Construction Yard beside the cement mixer at night](docs/media/construction-yard.png)
+![Buzz running down an aisle of Al's Space Land with the planet mural behind](docs/media/als-space-land.png)
+![Buzz on a refrigerator shelf in Al's Penthouse](docs/media/als-penthouse.png)
+
+Widescreen and 60 fps media are held back until their open defects are fixed: gaps in the 16:9 margins
+([issue 42](docs/issues/0042-widescreen-margin-edge-gaps.md)) and held in-betweens
+([issue 60](docs/issues/0060-in-betweens-are-held-by-unowned-moving-drawers.md)).
+
 ## Current state
 
 The durable feature inventory and exact gaps are in [project-state](docs/project-state.md), and the
