@@ -71,6 +71,8 @@ protected:
     std::uint32_t y = 0;
     std::uint32_t shownAxes = 0;
   };
+  // The axes (x 2, y 1) a centre word already shows inside the drawn window; the guest keeps them in s0.
+  std::uint32_t shownAxes(std::uint32_t centre) const;
   void storeScreenMask(ScreenCentre centre, std::span<const std::uint32_t> points);
   bool visible(std::uint32_t mask) const;
   std::uint32_t depth(unsigned point) const;

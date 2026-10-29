@@ -2,6 +2,7 @@
 
 #include "render/slot_packets.h"
 #include "render/static_mesh_layout.h"
+#include "widescreen/resident_widescreen.h"
 
 namespace ts2 {
 namespace {
@@ -13,6 +14,11 @@ constexpr unsigned kChildFlag = 39;
 constexpr unsigned kUvFlag = 7;
 constexpr std::uint32_t kSwapped = 8;
 constexpr unsigned kLodLevel = 38;
+constexpr std::uint32_t kRowLimit = 0x00F00000u; // 240 rows, in the top half of a word
+
+std::int32_t column(std::uint32_t sxy) {
+  return static_cast<std::int16_t>(sxy & 0xFFFFu);
+}
 
 } // namespace
 
@@ -58,18 +64,25 @@ void SplitEngine::release(std::uint32_t site) {
   releaseSubtree(c_, f_.kind);
 }
 
+std::uint32_t SplitEngine::shownAxes(std::uint32_t centre) const {
+  const ScreenColumns columns = ResidentWidescreenCull::drawnColumns(c_.memory().core());
+  const std::int32_t x = column(centre);
+  const bool shownX = x >= columns.left && x < columns.right;
+  return (shownX ? 2u : 0u) | (centre < kRowLimit ? 1u : 0u);
+}
+
 // The eight or six tested points are the middles the two projections give and the corners. The x byte and the y
 // byte each hold a bit per point, the first point in the top bit. A coordinate the centre already shows on
-// screen counts for all points; else a point counts when it lies on the same side as the centre.
+// screen counts for all points; else a point counts when it lies on the same side as the centre. Columns are the
+// guest's drawn window, retail 0..511 widened by the record canvas's margins.
 void SplitEngine::storeScreenMask(ScreenCentre centre, std::span<const std::uint32_t> points) {
-  constexpr std::uint32_t kXLimit = 0x02000000u; // 512 columns, in the top half of a word
-  constexpr std::uint32_t kYLimit = 0x00F00000u; // 240 rows
   std::uint32_t xs = 0xFFu;
   if ((centre.shownAxes & 2u) == 0u) {
-    const bool left = negative(centre.x << 16);
+    const ScreenColumns columns = ResidentWidescreenCull::drawnColumns(c_.memory().core());
+    const bool left = column(centre.x) < columns.left;
     xs = 0;
     for (const std::uint32_t p : points) {
-      const bool on = left ? !negative(p << 16) : MeshCpu::slt(p << 16, kXLimit) != 0u;
+      const bool on = left ? column(p) >= columns.left : column(p) < columns.right;
       xs = (xs << 1) | (on ? 1u : 0u);
     }
   }
@@ -78,7 +91,7 @@ void SplitEngine::storeScreenMask(ScreenCentre centre, std::span<const std::uint
     const bool above = negative(centre.y);
     ys = 0;
     for (const std::uint32_t p : points) {
-      const bool on = above ? !negative(p) : MeshCpu::slt(p, kYLimit) != 0u;
+      const bool on = above ? !negative(p) : MeshCpu::slt(p, kRowLimit) != 0u;
       ys = (ys << 1) | (on ? 1u : 0u);
     }
   }

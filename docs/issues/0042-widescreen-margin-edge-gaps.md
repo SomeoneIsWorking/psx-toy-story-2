@@ -6,17 +6,27 @@ symptom: Black or dark wedges where floor or wall should continue at the far lef
 tags: widescreen,render
 state_items: S010
 created: 2026-10-07
-updated: 2026-10-07
+updated: 2026-10-29
 ---
 
-On the record path at 16:9 (`scratch/record/rec169/present_{1400,1990}.png`), the outer edges of the
-margins sometimes show no geometry. Examples are the floor at the right edge and a dark block at the left
-in Andy's House. The old Gte-path baseline (`scratch/record/base169/present_1990.png`) shows the same
-kind of gap.
+Seen from boot in every attract level at 16:9 (`scratch/readme-media/survey2.jpg`): the guest's `rgb(33,33,33)`
+backdrop shows through ragged, polygon-shaped gaps in both margins, worst at the right (the construction yard, Al's
+Toy Barn and the kitchen level; Andy's House too). Every 16:9 gameplay still for the README is held back by it.
 
-`ResidentWidescreenCull` widens the visibility window (`0x80027AF0`) and the published screen rectangle
-(`0x80010000`). It is not yet known whether the gaps are a third cull test or the guest's
-`rgb(32,32,32)` backdrop where the room geometry ends.
+## Fixed
+The native subdividers (`SplitEngine::storeScreenMask` and the quad/triangle centre test) culled children against
+the retail columns 0..511. They now cull against `ResidentWidescreenCull::drawnColumns`, the retail columns plus the
+record canvas's margins. Shown on presents 5500 and 6250 of an idle boot at 16:9: the left margin's backdrop share
+fell from 22.5% and 13.6% to 0% and 0.1%. 4:3 is the same window as before.
 
-**Next step**: decompile the per-face screen test in `0x800100E4` and in the object-renderer drawers.
-Then compare one gap's faces against that test.
+## Remaining cause
+An unbounded subdivider window leaves the right-margin gaps unchanged, so they are not the native split. The
+remaining tests against the retail columns are guest code the port still runs:
+- the static submitter's guest path (`submitOnGuest`, the meshes with no native body, issue 41) calls the guest
+  subdividers `0x80014D3C`, `0x80016690`, `0x8001A4D4`, `0x8001B8AC`, each with `sltiu ...,0x200`
+  (`0x80014F84`, `0x8001688C`, `0x8001A71C`, `0x8001BAA8`);
+- the sprite quads `0x8001FB64` (`sltiu ...,0x200` at `0x8001FF78..0x8001FF9C`, any corner left of 512);
+- the actor part drawers' vertex tests (`slti ...,0x201`, `0x80031D80` onwards, issues 43-49).
+
+**Proper fix**: give those calls native bodies (issue 41 for the static meshes, the part-drawer issues, a native
+sprite drawer) so each tests `drawnColumns`; then re-measure the margins on the same presents.
