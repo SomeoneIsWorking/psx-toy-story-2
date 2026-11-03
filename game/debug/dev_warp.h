@@ -10,7 +10,7 @@ class Core;
 
 namespace ts2 {
 
-// The debug menu's `warp <level>` request. At the next frame boundary it ends the running level the way the
+// A level arrival of the warp catalogue. At the next frame boundary it ends the running level the way the
 // attract demo leaves its level (exit reason 4 and the play loop's 46-field fade out), and the outer loop then
 // starts level cursor <level> on the player leg through the level start 0x8007BEC4. Legal while a level runs.
 class DevWarp final {
