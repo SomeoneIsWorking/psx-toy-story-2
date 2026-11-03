@@ -5,6 +5,10 @@
 #include "frame/frame_driver.h"
 #include "game.h"
 
+#include <lucent/log.h>
+
+#include <vector>
+
 namespace ts2 {
 namespace {
 
@@ -16,16 +20,21 @@ DevWarp *devWarp(Core &core) {
 } // namespace
 
 DebugMenu::DebugMenu() {
-  using psx::game::DebugCall;
-  using psx::game::DebugParam;
-  section("Level Warp");
-  verb({
-      .name = "warp",
-      .summary = "Start that level",
-      .params = {DebugParam::integer("level", 0, DevWarp::kLevelCount - 1)},
-      .run =
-          [](const DebugCall &call) {
-            call.reply = devWarp(call.core)->arm(call.values.u32(0));
+  warp({
+      .levels = {"level"},
+      .places =
+          [](Core &) {
+            std::vector<psx::game::WarpPlace> levels;
+            for (std::uint32_t level = 0; level < static_cast<std::uint32_t>(DevWarp::kLevelCount); ++level) {
+              levels.push_back({
+                  .name = lucent::format("level {}", level),
+                  .arrive =
+                      [level](Core &core) {
+                        return devWarp(core)->arm(level);
+                      },
+              });
+            }
+            return levels;
           },
       .refusal =
           [](Core &core) {
