@@ -54,3 +54,5 @@ probes for one live session; what must keep working over time is a recording, be
 schedule assumes how many pad frames boot and the movies consume. It is not part of the gate.
 
 Game files, extracted executables, build products, and runtime captures are not tracked or packaged.
+
+Built with AI assistance (Claude and other LLMs).
