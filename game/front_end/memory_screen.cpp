@@ -5,6 +5,7 @@
 #include "execution/guest_execution.h"
 #include "execution_control.h"
 #include "execution_exit.h"
+#include "facts/guest_facts.h"
 #include "native_dispatch.h"
 #include "runtime/session.h"
 
@@ -20,7 +21,6 @@ constexpr std::uint32_t kScreenReset = 0x800D6614u;
 constexpr std::uint32_t kShowGraphic = 0x8003D084u;
 constexpr std::uint32_t kAdvanceFrame = 0x800775CCu;
 constexpr std::uint32_t kDrawGraphic = 0x8003E8B4u;
-constexpr std::uint32_t kSubmitFrame = 0x80046A88u;
 constexpr std::uint32_t kFadeOut = 0x80077598u;
 
 constexpr std::uint32_t kColdStartFlag = 0x800A1670u; // halfword; nonzero after the first boot
@@ -71,7 +71,7 @@ void MemoryScreen::enter(Core &core) {
     const GuestRegisters registers(core);
     call(core, kAdvanceFrame);
     call(core, kDrawGraphic, {0, static_cast<std::uint32_t>(-8)});
-    call(core, kSubmitFrame);
+    call(core, facts::kDrawModePacket);
     const auto elapsed = static_cast<std::int32_t>(core.mem_r32(kElapsedFields));
     bool fading = remaining_ < kFadeFields;
     if (remaining_ > 0) {

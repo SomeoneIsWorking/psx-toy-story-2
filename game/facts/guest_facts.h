@@ -15,6 +15,13 @@ inline constexpr uint32_t kOrderingTableBuckets = 0x57Cu;
 inline constexpr uint32_t kPacketPoolOffset = 0x1924u;
 inline constexpr uint32_t kPacketPoolStride = kGraphicsBufferB - kGraphicsBufferA;
 
+// gp+0x790: the buffer the resident update builds and the next deferred display 0x8003A888 draws.
+inline constexpr uint32_t kDrawBuffer = 0x800A1468u;
+// libgpu's DrawSync wrapper.
+inline constexpr uint32_t kDrawSync = 0x80085A54u;
+// Links the draw-mode packet every screen's frame opens with (SetDrawMode into the OT).
+inline constexpr uint32_t kDrawModePacket = 0x80046A88u;
+
 // The frame's drawers take packets at this cursor (gp+0x930) and add bucket offsets to the ordering table
 // pointer (gp+0x3E4, bucket 4 of the selected buffer's table).
 inline constexpr uint32_t kPacketCursor = 0x800A1608u;

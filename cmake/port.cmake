@@ -13,6 +13,9 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/debug/debug_menu.cpp
   game/debug/dev_warp.cpp
   game/execution/guest_execution.cpp
+  game/frame/draw_motion.cpp
+  game/frame/draw_replay.cpp
+  game/frame/draw_section.cpp
   game/frame/field_call.cpp
   game/frame/frame_cut.cpp
   game/frame/frame_boundary.cpp

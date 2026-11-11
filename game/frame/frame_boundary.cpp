@@ -379,6 +379,7 @@ bool CoreFrameBoundary::residentActive() const {
 
 void CoreFrameBoundary::updateResident() {
   const bool alternate = core_.mem_r32(kAlternateUpdateMode) != 0;
+  replay_.beginUpdate(alternate);
   const std::array noArguments{0u, 0u, 0u, 0u};
   callFiniteGuestToReturn(core_,
                           {residentUpdateAddress(alternate), 0x8007A9E8u, noArguments, std::nullopt, "resident update"},

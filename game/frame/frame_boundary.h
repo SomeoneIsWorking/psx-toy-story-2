@@ -3,6 +3,7 @@
 #pragma once
 
 #include "execution/guest_execution.h"
+#include "frame/draw_replay.h"
 #include "frame/field_call.h"
 #include "frame/outer_loop.h"
 #include "frame/resident_frame.h"
@@ -42,7 +43,8 @@ private:
 
 class CoreFrameBoundary final : public ResidentFrameBoundary, public OuterLoopBoundary {
 public:
-  CoreFrameBoundary(Core &core, FrameCallState &state) : core_(core), state_(state) {}
+  CoreFrameBoundary(Core &core, FrameCallState &state, DrawReplay &replay)
+      : core_(core), state_(state), replay_(replay) {}
 
   int displayFieldQuota() const override;
   void beginLogicFrame(uint32_t frame) override;
@@ -92,6 +94,7 @@ private:
 
   Core &core_;
   FrameCallState &state_;
+  DrawReplay &replay_;
   int fieldsDelivered_ = 0;
 };
 

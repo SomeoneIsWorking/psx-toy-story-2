@@ -10,8 +10,9 @@ namespace ts2 {
 
 void FrameDriver::stepFrame(Core &core, uint32_t frame) {
   warp_.applyArmed(frame);
-  CoreFrameBoundary boundary(core, state_);
+  CoreFrameBoundary boundary(core, state_, replay_);
   stepResidentFrame(boundary, frame);
+  replay_.endFrame();
 }
 
 std::unique_ptr<psx::game::FrameDriver> createFrameDriver(Game &game) {

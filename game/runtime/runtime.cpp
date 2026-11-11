@@ -4,6 +4,7 @@
 #include "core.h"
 #include "crt0_boot.h"
 #include "facts/guest_facts.h"
+#include "frame/draw_replay.h"
 #include "frame/frame_driver.h"
 #include "game.h"
 #include "guest_packet_pool_windows.h"
@@ -98,6 +99,7 @@ void Runtime::registerOverrides(Game &game) {
   ActorProducers::install(game.core, title.stateProducers);
   HierarchyDrawer::install(game.core, title.stateProducers);
   FrameCut::install(game.core);
+  DrawReplay::install(game.core);
   ResidentWidescreenCull::install(game.core);
 }
 
@@ -123,6 +125,11 @@ const psx::present::StateProducer *Runtime::stateProducer(Core &core, std::uint3
 
 bool Runtime::sealedFrameIsCut(Core &core) const {
   return session(core).frameCut.isCut();
+}
+
+psx::present::ReplayFrame *Runtime::replayFrame(Core &core) {
+  auto *driver = core.game->frameDriverIf<FrameDriver>();
+  return driver != nullptr ? &driver->drawReplay().frame() : nullptr;
 }
 
 const psx::present::GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {

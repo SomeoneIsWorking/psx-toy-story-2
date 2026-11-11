@@ -20,7 +20,6 @@ namespace {
 
 using facts::kGraphicsBufferA;
 using facts::kGraphicsBufferB;
-constexpr uint32_t kCurrentGraphicsBuffer = 0x800A1468u; // gp+0x790
 constexpr uint32_t kElapsedFields = 0x800A1174u;
 constexpr uint32_t kFieldAccumulator = 0x800A14D4u;
 constexpr uint32_t kDeferredDisplayRequest = 0x800A10F8u;
@@ -34,16 +33,16 @@ void dispatchGuest(Core &core,
 
 void selectGraphicsBuffer(Core &core, uint32_t firstChoice) {
   uint32_t selected = firstChoice;
-  if (core.mem_r32(kCurrentGraphicsBuffer) == kGraphicsBufferA) {
+  if (core.mem_r32(facts::kDrawBuffer) == kGraphicsBufferA) {
     selected = kGraphicsBufferB;
   }
   core.mem_w32(facts::kPacketCursor, selected + facts::kPacketPoolOffset);
-  core.mem_w32(kCurrentGraphicsBuffer, selected);
+  core.mem_w32(facts::kDrawBuffer, selected);
   core.mem_w32(facts::kOrderingTablePointer, selected + facts::kOrderingTableOffset + 0x10u);
   core.mem_w16(0x800A1E64u, 0xFFFF);
   dispatchGuest(core, 0x80086320u, {selected + 0x270});
   dispatchGuest(core, 0x80086054u, {selected + 0x18A0});
-  dispatchGuest(core, 0x80085A54u, {0});
+  dispatchGuest(core, facts::kDrawSync, {0});
 }
 
 void initializeGraphicsWithoutGuestVSync(Core *core) {
@@ -61,7 +60,7 @@ void initializeGraphicsWithoutGuestVSync(Core *core) {
   core->mem_w16(rect + 4, 0x280);
   core->mem_w16(rect + 6, 1);
   dispatchGuest(*core, 0x80085BE8u, {rect, 0, 0, 0});
-  dispatchGuest(*core, 0x80085A54u, {0});
+  dispatchGuest(*core, facts::kDrawSync, {0});
 
   dispatchGuest(*core, 0x80084DACu, {kGraphicsBufferA, 0x140, 0x100, 0x140}, 0xF0);
   dispatchGuest(*core, 0x80084E64u, {kGraphicsBufferA + 0x270, 0, 0x100, 0x140}, 0xF0);
@@ -104,7 +103,7 @@ void initializeGraphicsWithoutGuestVSync(Core *core) {
   dispatchGuest(*core, 0x80086960u, {kGraphicsBufferA + 0x290, 1, 1, texturePage}, rect);
   dispatchGuest(*core, 0x80086960u, {kGraphicsBufferB + 0x290, 1, 1, texturePage}, rect);
 
-  const bool bufferASelected = core->mem_r32(kCurrentGraphicsBuffer) == kGraphicsBufferA;
+  const bool bufferASelected = core->mem_r32(facts::kDrawBuffer) == kGraphicsBufferA;
   core->mem_w32(0x800A11D0u, core->mem_r32(bufferASelected ? 0x800A114Cu : 0x800A1150u));
   core->mem_w16(0x800A12E8u, 0);
   core->mem_w32(0x800A13F0u, bufferASelected ? 0x801C5A20u : 0x801E6F14u);
@@ -152,7 +151,7 @@ void initializeResidentGraphicsWithoutGuestVSync(Core &core) {
   dispatchGuest(core, 0x80085BE8u, {rect, 0, 0, 0});
   setRect(0x3FF, 0x1FF, 1, 1);
   dispatchGuest(core, 0x80085BE8u, {rect, 0, 0, 0});
-  dispatchGuest(core, 0x80085A54u, {0});
+  dispatchGuest(core, facts::kDrawSync, {0});
 
   dispatchGuest(core, 0x80084DACu, {kGraphicsBufferA, 0x200, 0x100, drawWidth}, 0xF0);
   core.mem_w8(kGraphicsBufferA + 0x16, 1);
@@ -203,7 +202,7 @@ void initializeResidentGraphicsWithoutGuestVSync(Core &core) {
   dispatchGuest(core, 0x80086960u, {kGraphicsBufferA + 0x290, 1, 1, texturePage}, rect);
   dispatchGuest(core, 0x80086960u, {kGraphicsBufferB + 0x290, 1, 1, texturePage}, rect);
 
-  const bool bufferASelected = core.mem_r32(kCurrentGraphicsBuffer) == kGraphicsBufferA;
+  const bool bufferASelected = core.mem_r32(facts::kDrawBuffer) == kGraphicsBufferA;
   core.mem_w16(0x800A12E8u, 0);
   core.mem_w32(0x800A11D0u, core.mem_r32(bufferASelected ? 0x800A114Cu : 0x800A1150u));
   core.mem_w32(0x800A13F0u, bufferASelected ? 0x801C5A20u : 0x801E6F14u);
@@ -219,8 +218,8 @@ void shutdownGraphicsWithoutGuestVSync(Core *core) {
   const GuestRegisters registers(*core);
 
   // Only VSync is omitted from retail 0x8003A838; the four state transitions are the guest's own.
-  dispatchGuest(*core, 0x80085A54u, {0});
-  dispatchGuest(*core, 0x80085A54u, {0});
+  dispatchGuest(*core, facts::kDrawSync, {0});
+  dispatchGuest(*core, facts::kDrawSync, {0});
   dispatchGuest(*core, 0x80088920u);
   session(*core).pad.shutdown(*core);
   dispatchGuest(*core, 0x80085594u, {3});
