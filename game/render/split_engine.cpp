@@ -288,7 +288,6 @@ void SplitEngine::link(ChildLink child, std::uint32_t command, std::span<const u
   for (unsigned k = 0; k != corners.size(); ++k) {
     c.sw(packet + f_.xy(k), c.lw(c.t9 + points_[corners[k]].sxy));
   }
-  bindPacket(c.memory(), packet);
 }
 
 void SplitEngine::releaseSpare() {

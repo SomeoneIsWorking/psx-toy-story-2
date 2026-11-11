@@ -9,13 +9,8 @@ class Core;
 
 namespace ts2 {
 
-// The generation sits above the main-RAM offset, so it wraps after 2048 resets of one record.
-inline constexpr std::uint32_t kActorOffsetBits = 21u;
-inline constexpr std::uint32_t kActorOffsetMask = (1u << kActorOffsetBits) - 1u;
-
-constexpr std::uint32_t incarnationObject(std::uint32_t actor, std::uint32_t generation) {
-  return (generation << kActorOffsetBits) | (actor & kActorOffsetMask);
-}
+// Records are counted by main-RAM offset, so a mirror address names the same record.
+inline constexpr std::uint32_t kActorOffsetMask = 0x1FFFFFu;
 
 class ActorIncarnations {
 public:

@@ -1,12 +1,12 @@
 ---
 id: 60
 title: Every gameplay in-between is held because unowned drawers move
-status: open
+status: resolved
 symptom: fps60=1 gameplay shows each guest frame twice; no in-between carries motion
 tags: fps60,render
 state_items: S011
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-11
 ---
 
 ## Reproduction
@@ -25,3 +25,7 @@ text/HUD writers `0x80085080`, `0x800850A8`, `0x800851E8`, `0x8008491C`, and `0x
 ## Proper fix
 A state producer (or a draw-site tag with an explicit id) for each of those drawers, so the verdict finds no unowned
 motion and the composer blends the interval. The README's interpolation clip waits on this.
+
+## Resolution (2026-11-11)
+
+The in-betweens no longer come from keyed records. `DrawReplay` runs the resident update's draw section (`0x80046A88`, the world pass `0x8002A070`, the display's links) again in the sandbox with the camera, player, actor and posed-part tracks blended to t = 0.5, so every drawer, owned or not, draws at t (`docs/plans/replay-interpolation.md`). On Andy's House and the Construction Yard 1006 of 1063 intervals replay; the rest are the VRAM probe of issue 61.

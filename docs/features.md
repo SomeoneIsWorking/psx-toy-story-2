@@ -10,7 +10,7 @@ with no row runs on the framework alone.
 | 1 | psxport F-BOOT.1 | `game/entry/catalog.cpp:createCatalog` — `SLUS_008.93` identity, `PSXPORT_TS2_DISC`, one `ts2::Runtime` |
 | 2 | psxport F-BOOT.5 | `game/runtime/runtime.cpp:Runtime::startProgram` — crt0 (`kCrt0`), then `GuestMainBoot::initialize`, the measured prefix of guest main `0x8007A9E8` |
 | 3 | psxport F-BOOT.6 | `game/runtime/runtime.cpp:Runtime::registerOverrides` — binds `StockLibgte`, `StockVSync` (`0x80088628`, counter `0x8009FD54`), `StockLibgpu`, `StockDmaCallbacks` (`0x8009FD60`) and `GuestInterruptLibcd`, then installs the title overrides |
-| 4 | psxport F-BOOT.6 | `game/runtime/session.h:ts2::Session` — per-Core boot owners, overlays, pad, movie player, frame cut, actor state, state producers |
+| 4 | psxport F-BOOT.6 | `game/runtime/session.h:ts2::Session` — per-Core boot owners, overlays, pad, movie player, frame cut, actor incarnations |
 
 ## F-TURN
 
@@ -46,7 +46,7 @@ with no row runs on the framework alone.
 
 | hop | joins | owner |
 |---|---|---|
-| 1 | psxport F-FPS60.1 | `game/runtime/runtime.cpp:Runtime::stateProducer` — answered from `Session::stateProducers` |
+| 1 | psxport F-FPS60.1 | `game/runtime/runtime.cpp:Runtime::replayFrame` — the draw section replay `DrawReplay` |
 | 2 | psxport F-FPS60.1 | `game/render/mesh_draw_state.cpp:MeshStateRender` — static `0x800100E4` and rigid `0x80017FF8` meshes |
 | 3 | psxport F-FPS60.1 | `game/render/part_draw_state.cpp:PartStateRender` — actor parts drawn by `0x8001C920` and `0x8001DFE4` |
 | 4 | psxport F-FPS60.2 | `game/frame/frame_cut.cpp:FrameCut::isCut` — level, area and camera cuts |

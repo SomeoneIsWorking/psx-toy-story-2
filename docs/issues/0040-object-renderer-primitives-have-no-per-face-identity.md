@@ -1,12 +1,12 @@
 ---
 id: 40
 title: Object-renderer primitives have no per-face identity at the guest boundary
-status: superseded
+status: resolved
 symptom: Buzz, actors, pickups and hierarchical models are drawn as the newer record in a 60 fps in-between
 tags: interpolation,render,producers
 state_items: S009,S011
 created: 2026-10-07
-updated: 2026-10-15
+updated: 2026-11-11
 ---
 
 On the record path only keyed primitives move in an in-between. In Andy's House (route
@@ -57,3 +57,7 @@ route: `0x8001C920` 506 of 506 sampled calls match, `0x8001DFE4` 319 of 319; `0x
 (Andy's House player, pause and area transition, exit level, intro, movie viewer; override differential), so it stays on the guest and its
 parts are drawn unkeyed; it needs a route that reaches part type 1 mode 0 to be ported. Recordcheck at 1x 4:3: fps60 off and on both 2006 presents, 0 mismatched.
 Keyed blend is still needed for the unported drawers listed above and for the slot meshes.
+
+## Resolution (2026-11-11)
+
+Moot: in-betweens are the guest's own draw section replayed with blended inputs (`DrawReplay`, `docs/plans/replay-interpolation.md`), so a drawer needs neither a native body nor per-face identity to move at t. The state producers, their recorders and keys are deleted.

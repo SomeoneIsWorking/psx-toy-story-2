@@ -30,3 +30,9 @@ remaining tests against the retail columns are guest code the port still runs:
 
 **Proper fix**: give those calls native bodies (issue 41 for the static meshes, the part-drawer issues, a native
 sprite drawer) so each tests `drawnColumns`; then re-measure the margins on the same presents.
+
+The guest's near-camera split paths test retail columns: `sltiu ...,0x200` on the centre (`0x80014F84`,
+`0x8001688C`, `0x8001A71C`, `0x8001BAA8`) and `lui 0x200` / `bltz` per point (`0x80015B68`, `0x80017248`,
+`0x8001B280`). `MeshSubmitters` keeps the native mesh bodies for this alone: `SplitEngine` tests the widened
+columns, and with the guest bodies the floor pieces past column 512 are dropped (Construction Yard, 2026-11-11).
+Calls the native plan refuses still run the guest's retail split.

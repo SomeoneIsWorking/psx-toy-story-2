@@ -10,8 +10,8 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 | owner | path | owns |
 |---|---|---|
 | `createCatalog` | `game/entry/catalog.*` | The one-title catalog: `SLUS_008.93` identity, `PSXPORT_TS2_DISC`, provisioning under `scratch/bin`, one `ts2::Runtime` |
-| `ts2::Runtime` | `game/runtime/runtime.*` | The `GameRuntime`: crt0 (`Crt0Boot`), stock libgte/VSync/libgpu/DMA-callback/libcd/pad objects bound in `registerOverrides`, the title overrides, session, frame driver, packet pool, state producers, cut, widescreen policy, input phase, host identity |
-| `ts2::Session`, `session` | `game/runtime/session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations, the state-producer table |
+| `ts2::Runtime` | `game/runtime/runtime.*` | The `GameRuntime`: crt0 (`Crt0Boot`), stock libgte/VSync/libgpu/DMA-callback/libcd/pad objects bound in `registerOverrides`, the title overrides, session, frame driver, packet pool, cut, widescreen policy, input phase, host identity |
+| `ts2::Session`, `session` | `game/runtime/session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations |
 | `GuestMainBoot` | `game/boot/guest_main_boot.*` | The measured prefix of guest main `0x8007A9E8`, then overlay initialization, stopping before the outer loop |
 | `GraphicsSync`, `publishFieldBarrier` | `game/boot/graphics_sync.*` | Graphics init, resident init, shutdown and field barrier (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`) with no guest-owned VSync |
 | `LevelStartPresentation` | `game/boot/level_start_presentation.*` | The `0x8007C278` override per level start; suppresses only the demo-forced LOADING card |
@@ -39,21 +39,15 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 | `guestWidescreenPolicy` | `game/widescreen/guest_widescreen.*` | 16:9 from the configured aspect |
 | `ResidentWidescreenCull` | `game/widescreen/resident_widescreen.*` | Widened visibility window `0x80027AF0` and screen rectangle `0x80010000` |
 | `OrderingTables` | `game/render/ordering_tables.*` | Names both OTs so entries carry their bucket |
-| `SlotMeshProducers` | `game/render/slot_mesh_producers.*` | Overrides `0x800100E4` and `0x80017FF8`: native body inside the object's key, or the guest original with `keyFaces` |
-| `MeshDrawRecorder`, `MeshStateRender` | `game/render/mesh_draw_state.*` | Saves a mesh call's inputs; renders it at t over host memory |
-| `MeshDrawers` | `game/render/mesh_drawers.*` | The one entry to the ported mesh bodies: plan, run, ordering table |
+| `MeshSubmitters` | `game/render/mesh_submitters.*` | Overrides `0x800100E4` and `0x80017FF8`: the native body when it covers the call, else the guest original |
+| `MeshDrawers` | `game/render/mesh_drawers.*` | The one entry to the ported mesh bodies: plan, run |
 | `StaticMeshDrawer` | `game/render/static_mesh_drawer.*`, `static_mesh_plan.cpp`, `static_mesh_layout.h` | `0x800100E4`, positive-header meshes |
 | `RigidMeshDrawer` | `game/render/rigid_mesh_drawer.*` | `0x80017FF8` |
-| subdividers | `game/render/mesh_subdividers.*`, `quad_split*`, `tri_split*`, `split_*` | `0x80017B6C` and the clip subdividers over `SplitEngine` |
-| slot packets | `game/render/slot_packets.*`, `slot_release.*` | Slot fill, link under the open key, child release |
+| subdividers | `game/render/mesh_subdividers.*`, `quad_split*`, `tri_split*`, `split_*` | `0x80017B6C` and the clip subdividers over `SplitEngine`, which tests the widened screen columns |
+| slot packets | `game/render/slot_packets.*`, `slot_release.*` | Slot fill, link, child release |
 | `MeshCpu`, culling | `game/render/mesh_cpu.h`, `mesh_culling.*`, `mesh_scratch.h` | The register-level body over `EmitMemory` and `core.gte()`, scratchpad `0x1F800000` |
 | mesh format | `game/render/mesh_format.*`, `mesh_draw_call.h`, `memory_range.*` | Resident mesh layout and command walk; a call's registers and read ranges |
 | `ActorIncarnations` | `game/render/actor_incarnation.*` | Actor reset `0x8006A9FC` bumps the object generation |
-| `ActorProducers` | `game/render/actor_producers.*` | Overrides `0x8002518C`/`0x80024174` to note the drawn actor; installs `PartStateRender` |
-| `PartFaceDrawers` | `game/render/part_face_drawers.*` | Native part drawers `0x8001C920` (prelit) and `0x8001DFE4` (normal-lit) |
-| `PartDrawRecorder`, `PartStateRender` | `game/render/part_draw_state.*` | Saves a part draw; renders it at t over host memory |
-| `HierarchyDrawer` | `game/render/hierarchy_drawer.*` | Native hierarchical model drawer `0x8002AC40`, keyed by the caller's world object record (s7) |
-| `HierarchyDrawRecorder`, `HierarchyStateRender` | `game/render/hierarchy_draw_state.*` | Saves a hierarchy draw; renders it at t over host memory |
 | launcher | `tools/run.py`, `tools/resolve_disc.py`, `tools/extract_exe.py`, `tools/discdump.py` | Disc resolution and extraction for the zero-argument launch |
 | run control | `tools/headless_run.py`, `tools/execution_ledger.py`, `tools/route.py` | Hidden-window runs, replays, the run-end ledger |
 | RE evidence | `tools/ram_image.py`, `tools/ghidra_xref.py`, `tools/re_xref.py` | The RAM image Ghidra imports and address xrefs |
@@ -65,6 +59,6 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 - A guest function Toy Story 2 replaces → `game/<subsystem>/`, installed from `Runtime::registerOverrides`.
 - A stock library body → a psxport stock class bound in `ts2::Runtime`, never a title copy.
 - Per-Core title state → `ts2::Session`.
-- A native drawer → `game/render/`, with a recorder and a `StateProducer` in the session table.
+- A native drawer body → `game/render/`, installed as a plain override; interpolation stays the draw section replay.
 - A measured guest address → beside the owner that reads it, evidence in `docs/re-frontier.md`.
 - Anything every title shares → psxport, not here.

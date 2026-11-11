@@ -2,8 +2,8 @@
 
 Toy Story 2's 60 fps in-betweens come from its own draw section run again with its moving inputs blended
 (psxport `ReplayFrame`, `docs/plans/replay-interpolation.md` and `docs/presentation.md` there). The guest's draw
-code is the only renderer: the per-drawer state producers, their native mesh, part and hierarchy bodies and the
-emission keys are deleted.
+code is the only interpolation: the per-drawer state producers, their recorders, renders and emission keys and
+the native part and hierarchy bodies are deleted; the native mesh bodies stay for widescreen (issue 42).
 
 ## Frame loop
 
@@ -74,11 +74,17 @@ Particles and effect pools of the world pass (`0x80044C18`, `0x80046E50`, `0x800
 
 ## Proof (2026-11-11)
 
-Hidden window, ires 0, fps60, sink 3840x2160, unpaced (`scratch/replay/drive.py`, warp then Cross twice):
+Hidden window, ires 0, fps60, sink 3840x2160, unpaced (`scratch/replay/drive.py`, warp then Cross twice), after
+the producers were deleted:
 
-- t = 1 probe (no track written): 6 of 6 in-betweens byte-identical to the real present, Andy's House.
-- Andy's House running right and Construction Yard walking and turning: camera, Buzz's pose and the scene land
-  between their neighbours; nothing missing.
+- t = 1 probe (no track written): 6 of 6 in-betweens byte-identical to the real present on Andy's House and on
+  the Construction Yard.
+- Andy's House running right: the floor seam steps evenly, about 30 px a present; Construction Yard walking and
+  turning: camera, Buzz's pose and the scene land between their neighbours; nothing missing.
 - Run end: 1006 intervals replayed, 57 refused (all `0x80040160`); camera, player and posed parts pair every
-  record; 13 of 1969 actor draws unpaired.
-- Leak proof: the same input with fps60 on and off ends in identical 2 MiB of guest RAM.
+  record; 14 of 2008 (Andy's House) and 17 of 1025 (Construction Yard) actor draws unpaired.
+- Leak proof (before the deletion): the same input with fps60 on and off ends in identical 2 MiB of guest RAM.
+- Not yet: a paced real-time run on a quiet host.
+
+The native mesh bodies stay (`MeshSubmitters`): with the guest's own split paths the floor pieces past column
+512 drop out of the widescreen margins (issue 42).

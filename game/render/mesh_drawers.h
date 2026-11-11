@@ -1,5 +1,4 @@
-// The ported resident mesh drawers behind one entry: the guest override and the render both run a call
-// through here.
+// The ported resident mesh drawers behind one entry; their split paths test the widened screen columns.
 #pragma once
 
 #include "emit_memory.h"
@@ -16,9 +15,6 @@ public:
 
   // nullopt when the call reaches a path without a native body: the memory is then dirty and must be discarded.
   static std::optional<MeshDrawResult> run(const psx::present::EmitMemory &memory, const MeshDrawCall &call);
-
-  // The ordering table the call links into.
-  static std::uint32_t orderingTable(const psx::present::EmitMemory &memory, const MeshDrawCall &call);
 };
 
 } // namespace ts2

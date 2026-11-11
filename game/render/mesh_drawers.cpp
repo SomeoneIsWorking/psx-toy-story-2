@@ -41,15 +41,4 @@ std::optional<MeshDrawResult> MeshDrawers::run(const EmitMemory &memory, const M
   }
 }
 
-std::uint32_t MeshDrawers::orderingTable(const EmitMemory &memory, const MeshDrawCall &call) {
-  switch (call.drawer) {
-  case RigidMeshDrawer::kEntry:
-    return call.args[2];
-  case StaticMeshDrawer::kEntry:
-    return StaticMeshDrawer::orderingTable(memory);
-  default:
-    unknown(call.drawer);
-  }
-}
-
 } // namespace ts2

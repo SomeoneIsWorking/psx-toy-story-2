@@ -14,8 +14,8 @@
 
 namespace ts2 {
 
-// Replays crt0 and guest main's prefix, then FrameDriver owns each field. Records interpolate
-// through the slot-mesh and actor-part producers.
+// Replays crt0 and guest main's prefix, then FrameDriver owns each field and replays the resident update's draw
+// section for the in-betweens.
 class Runtime final : public psx::game::GameRuntime {
 public:
   Runtime();
@@ -29,7 +29,6 @@ public:
   bool interpolates() const override {
     return true;
   }
-  const psx::present::StateProducer *stateProducer(Core &core, std::uint32_t producer) const override;
   bool sealedFrameIsCut(Core &core) const override;
   psx::present::ReplayFrame *replayFrame(Core &core) override;
   const psx::present::GuestWidescreenProjection *guestWidescreenProjection() const override;

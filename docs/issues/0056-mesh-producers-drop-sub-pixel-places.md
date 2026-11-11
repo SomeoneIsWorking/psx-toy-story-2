@@ -1,12 +1,12 @@
 ---
 id: 56
 title: Mesh producers drop the GTE's sub-pixel places
-status: open
+status: resolved
 symptom: in-betweens of meshes drawn by the quad/triangle splitters and the static, rigid and part-face drawers snap every vertex to a whole native pixel above 1x
 tags: render,fps60
 state_items: S011
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-11-11
 ---
 
 ## Observed
@@ -25,3 +25,7 @@ through `EmitMemory::storeVertex`/`loadVertex`.
 ## Fix (not done)
 Each drawer keeps its projected vertices as `gte::ProjectedVertex` from `Gte::projected` to the packet store, computes
 split midpoints with a place (psxport `presentation.md`, Sub-pixel place) and stores them with `storeVertex`.
+
+## Resolution (2026-11-11)
+
+Moot: in-betweens are the guest's own draw section replayed with blended inputs (`DrawReplay`, `docs/plans/replay-interpolation.md`), so a drawer needs neither a native body nor per-face identity to move at t. The state producers, their recorders and keys are deleted.

@@ -10,10 +10,9 @@
 #include "guest_packet_pool_windows.h"
 #include "input/pad_owner.h"
 #include "overlay/overlay_images.h"
-#include "render/actor_producers.h"
-#include "render/hierarchy_drawer.h"
+#include "render/actor_incarnation.h"
+#include "render/mesh_submitters.h"
 #include "render/ordering_tables.h"
-#include "render/slot_mesh_producers.h"
 #include "runtime/session.h"
 #include "widescreen/guest_widescreen.h"
 #include "widescreen/resident_widescreen.h"
@@ -94,10 +93,8 @@ void Runtime::registerOverrides(Game &game) {
   title.soundBank.install(game.core);
   title.pad.install(game.core);
   OrderingTables::name(game.core);
-  SlotMeshProducers::install(game.core, title.stateProducers);
+  MeshSubmitters::install(game.core);
   ActorIncarnations::install(game.core);
-  ActorProducers::install(game.core, title.stateProducers);
-  HierarchyDrawer::install(game.core, title.stateProducers);
   FrameCut::install(game.core);
   DrawReplay::install(game.core);
   ResidentWidescreenCull::install(game.core);
@@ -117,10 +114,6 @@ void Runtime::deliverPad(Core &core, const psx::input::PadDelivery &delivery) {
 
 std::optional<psx::gpu::PacketPoolExtent> Runtime::packetPool(Core &core) const {
   return kPacketPool.extent(core);
-}
-
-const psx::present::StateProducer *Runtime::stateProducer(Core &core, std::uint32_t producer) const {
-  return session(core).stateProducers.find(producer);
 }
 
 bool Runtime::sealedFrameIsCut(Core &core) const {

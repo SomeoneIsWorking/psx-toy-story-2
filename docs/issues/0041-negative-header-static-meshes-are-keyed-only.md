@@ -1,12 +1,12 @@
 ---
 id: 41
 title: Negative-header static meshes are keyed-only
-status: open
+status: resolved
 symptom: Static meshes with auxiliary vertex records (negative header) are keyed-only; near-camera subdivided faces of positive-header meshes are fixed
 tags: interpolation,render,producers
 state_items: S011
 created: 2026-10-07
-updated: 2026-10-15
+updated: 2026-11-11
 ---
 
 The static mesh submitter `0x800100E4` keeps one packet per face in the slot array, and
@@ -48,3 +48,7 @@ instructions). The handler's sub-calls and the reflective quad are not yet read.
 **Proper fix**: port the prologue (the `0x80083944` normaliser, the `0x800B27A8` cache clear, the control
 register writes) and handler `0x80012FE0` in the static walk, extend `Gather` with the cache range, prove with
 the override diff.
+
+## Resolution (2026-11-11)
+
+Moot: in-betweens are the guest's own draw section replayed with blended inputs (`DrawReplay`, `docs/plans/replay-interpolation.md`), so a drawer needs neither a native body nor per-face identity to move at t. The state producers, their recorders and keys are deleted.

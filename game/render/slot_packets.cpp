@@ -98,12 +98,6 @@ SlotPair fillNewSlot(const EmitMemory &m,
   return pair;
 }
 
-void bindPacket(const EmitMemory &memory, std::uint32_t packet) {
-  if (!memory.hosted() && memory.core().emission.isOpen()) {
-    memory.core().emission.bindPacket(packet);
-  }
-}
-
 void linkPacket(const EmitMemory &m,
                 PacketShape shape,
                 std::uint32_t packet,
@@ -121,7 +115,6 @@ void linkPacket(const EmitMemory &m,
                                         : (shape.quad ? kPlainQuadLength : kPlainTriangleLength);
   m.mem_w32(head, (packet << 8) >> 8);
   m.mem_w32(packet, chained + length);
-  bindPacket(m, packet);
 }
 
 } // namespace ts2

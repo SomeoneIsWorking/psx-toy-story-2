@@ -36,9 +36,6 @@ SlotPair fillNewSlot(const psx::present::EmitMemory &memory,
                      const std::array<std::uint32_t, 4> &corners,
                      PacketSlot slot);
 
-// Names the packet by the open object scope; a render over host memory names nothing.
-void bindPacket(const psx::present::EmitMemory &memory, std::uint32_t packet);
-
 // The screen points in packet order (P0, P1, P3, P2), and the packet put at the head of the bucket `head`.
 void linkPacket(const psx::present::EmitMemory &memory,
                 PacketShape shape,
