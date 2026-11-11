@@ -47,8 +47,8 @@ with no row runs on the framework alone.
 | hop | joins | owner |
 |---|---|---|
 | 1 | psxport F-FPS60.1 | `game/runtime/runtime.cpp:Runtime::replayFrame` — the draw section replay `DrawReplay` |
-| 2 | psxport F-FPS60.1 | `game/render/mesh_draw_state.cpp:MeshStateRender` — static `0x800100E4` and rigid `0x80017FF8` meshes |
-| 3 | psxport F-FPS60.1 | `game/render/part_draw_state.cpp:PartStateRender` — actor parts drawn by `0x8001C920` and `0x8001DFE4` |
+| 2 | psxport F-FPS60.1 | `game/frame/draw_section.cpp:DrawSection::draw` — the resident update's draw section the replay runs |
+| 3 | psxport F-FPS60.1 | `game/frame/draw_motion.cpp:DrawMotion` — the camera, player, actor and posed-part tracks it blends |
 | 4 | psxport F-FPS60.2 | `game/frame/frame_cut.cpp:FrameCut::isCut` — level, area and camera cuts |
 
 ## F-WIDE

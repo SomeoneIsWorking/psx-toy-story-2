@@ -32,7 +32,6 @@ inline constexpr uint32_t kBucketOffsets = 0x800A12F8u;
 inline constexpr uint32_t kDepthLimit = 0x800A135Cu;
 // Texture page entries, 16 bytes each: tpage, then CLUT base.
 inline constexpr uint32_t kTexturePages = 0x800CD200u;
-inline constexpr uint32_t kTexturePageBytes = 16u;
 inline constexpr uint32_t kTexturePageTableBytes = 0x200u;
 
 // VSync(-1) returns this word (0x8008866C lw 0x800A0000-0x2AC); the frame driver mirrors the host field count.

@@ -27,13 +27,12 @@ Contributing state: S008, S009, S010.
 
 ## G003 — Native and interpolated 60fps presentation
 
-Render from game-owned scene state through title-owned native producers and present interpolated frames
-between simulation ticks at the player-facing 60fps cadence.
+Present interpolated frames between simulation ticks at the player-facing 60fps cadence by replaying the
+game's own draw section with its moving inputs blended between two ticks (`docs/plans/replay-interpolation.md`).
 
-Success requires every visible layer to have an attributed producer, stable previous/current camera and
-object state, and representative real-game comparisons against retained guest behavior. Interpolation
-does not decorate final GP0 primitives, and a native renderer is not considered implemented merely
-because the framework can consume guest packets.
+Success requires every visible layer to be drawn by the game's own draw code in the in-between, stable
+previous/current camera and object state with identity from the game's own records, and in-betweens judged
+halfway between their neighbours in real-game captures. Interpolation does not decorate final GP0 primitives.
 
 Contributing state: S008, S009, S011.
 
