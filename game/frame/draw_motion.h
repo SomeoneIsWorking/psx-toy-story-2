@@ -57,14 +57,21 @@ public:
 };
 
 // The part records the update posed: those of a model the draw list draws once, for an actor with no animation
-// for 0x800426E0 to pose in the draw.
+// for 0x800426E0 to pose in the draw, while the same actor in the same life poses them.
 class PartLiveness final : public psx::present::MotionLiveness {
 public:
   void sample(Core &core) override;
   [[nodiscard]] bool live(std::uint32_t record) const override;
 
 private:
-  std::unordered_set<std::uint32_t> posed_;
+  struct Owner {
+    std::uint32_t actor = 0;
+    std::uint32_t generation = 0;
+    bool operator==(const Owner &) const = default;
+  };
+  // Part record -> the actor that posed it, this sample and the one before.
+  std::unordered_map<std::uint32_t, Owner> posed_;
+  std::unordered_map<std::uint32_t, Owner> earlier_;
 };
 
 class DrawMotion {
@@ -82,7 +89,8 @@ public:
 private:
   static constexpr std::size_t kTracks = 6;
 
-  psx::present::TransformRule transform_;
+  // RotMatrix of the camera's angles with its x row widened by 512/320 and its rows shaken (0x8002C848).
+  psx::present::TransformRule camera_{psx::present::TransformRule::Rows::Scaled};
   ActorMotion actor_;
   ActorLiveness actors_;
   PartMotion part_;

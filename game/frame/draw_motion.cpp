@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace ts2 {
 namespace {
@@ -18,8 +19,9 @@ using psx::present::MotionKey;
 using psx::present::MotionRecords;
 using psx::present::MotionTrack;
 
-// 0x8002C848 leaves the camera's MATRIX at 0x1F800394 (rotation with its x row widened), its position at
-// 0x1F800374 and that position >> 5 at 0x1F800384; the published angles 0x800A1618 are three s16.
+// 0x8002C848 leaves the camera's MATRIX at 0x1F800394 (RotMatrix of its angles, the x row widened, the rows scaled by
+// the shake gp+0x9C4), its position at 0x1F800374 and that position >> 5 at 0x1F800384; the published angles
+// 0x800A1618 are three s16.
 constexpr std::uint32_t kCameraMatrix = 0x1F800394u;
 constexpr auto kCameraMatrixFields = psx::present::transformFields(0);
 constexpr std::uint32_t kCameraPosition = 0x1F800374u;
@@ -151,8 +153,10 @@ void PartMotion::blend(const Samples &samples, float t, std::span<std::uint32_t>
 }
 
 void PartLiveness::sample(Core &core) {
+  std::swap(earlier_, posed_);
   posed_.clear();
   std::unordered_map<std::uint32_t, std::uint32_t> drawn;
+  std::unordered_map<std::uint32_t, std::uint32_t> drawnBy;
   std::unordered_set<std::uint32_t> unanimated;
   for (std::uint32_t entry = 0; entry < kDrawListMax; ++entry) {
     const std::uint32_t actor = core.mem_r32(kDrawList + entry * 4u);
@@ -161,25 +165,34 @@ void PartLiveness::sample(Core &core) {
     }
     const std::uint32_t model = core.mem_r16(actor + 0x14u);
     ++drawn[model];
+    drawnBy[model] = actor;
     if (core.mem_r16(actor + 0x12u) == kNoAnimation && core.mem_r16(actor + 0x16u) == kNoAnimation) {
       unanimated.insert(model);
     }
   }
+  const ActorIncarnations &incarnations = session(core).actorIncarnations;
   for (const auto &[model, draws] : drawn) {
     const std::uint32_t entry = core.mem_r32(kModels + model * 4u);
     if (draws != 1u || !unanimated.contains(model) || entry == 0u) {
       continue;
     }
+    const std::uint32_t actor = drawnBy[model];
+    const Owner owner{.actor = actor, .generation = incarnations.generation(actor)};
     const auto first = static_cast<std::uint32_t>(core.mem_r16s(entry + kModelFirstPart));
     const auto end = static_cast<std::uint32_t>(core.mem_r16s(entry + kModelPartsEnd));
     for (std::uint32_t part = first; part < end && part < kPartCount; ++part) {
-      posed_.insert(kParts + part * kPartBytes);
+      posed_.emplace(kParts + part * kPartBytes, owner);
     }
   }
 }
 
 bool PartLiveness::live(std::uint32_t record) const {
-  return posed_.contains(record);
+  const auto now = posed_.find(record);
+  if (now == posed_.end()) {
+    return false;
+  }
+  const auto before = earlier_.find(record);
+  return before == earlier_.end() || before->second == now->second;
 }
 
 void ActorLiveness::sample(Core &core) {
@@ -211,7 +224,7 @@ bool ActorLiveness::live(std::uint32_t record) const {
 DrawMotion::DrawMotion(Core &core)
     : actor_(core),
       tracks_{{
-          {.name = "camera matrix", .address = kCameraMatrix, .fields = kCameraMatrixFields, .rule = &transform_},
+          {.name = "camera matrix", .address = kCameraMatrix, .fields = kCameraMatrixFields, .rule = &camera_},
           {.name = "camera position", .address = kCameraPosition, .fields = kCameraPositionFields},
           {.name = "camera angles", .address = kCameraAngles, .fields = kCameraAngleFields},
           {.name = "player", .address = kPlayer, .fields = kActorFields, .rule = &actor_, .keys = kActorKeys},

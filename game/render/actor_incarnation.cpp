@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "execution_exit.h"
+#include "frame/draw_replay.h"
 #include "native_dispatch.h"
 #include "runtime/session.h"
 
@@ -12,7 +13,10 @@ void actorReset(Core *core) {
   const std::uint32_t actor = core->r[4];
   psx::cpu::callOriginalToReturn(
       *core, ActorIncarnations::kActorReset, psx::cpu::ExecutionBudget::currentTurn(*core), "actor reset");
-  session(*core).actorIncarnations.begin(actor);
+  // A replay's reset is put back with it, so it begins no life.
+  if (!replaying(*core)) {
+    session(*core).actorIncarnations.begin(actor);
+  }
 }
 
 } // namespace

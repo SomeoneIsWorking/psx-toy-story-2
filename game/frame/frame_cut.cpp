@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "execution_exit.h"
+#include "frame/draw_replay.h"
 #include "native_dispatch.h"
 #include "runtime/session.h"
 
@@ -13,7 +14,10 @@ namespace {
 void cameraPlacement(Core *core) {
   psx::cpu::callOriginalToReturn(
       *core, FrameCut::kCameraPlacement, psx::cpu::ExecutionBudget::currentTurn(*core), "camera placement");
-  session(*core).frameCut.noteCameraPlaced();
+  // A replay's camera work is put back with it, so it declares no cut.
+  if (!replaying(*core)) {
+    session(*core).frameCut.noteCameraPlaced();
+  }
 }
 
 void cameraUpdate(Core *core) {
@@ -21,6 +25,9 @@ void cameraUpdate(Core *core) {
   const bool direct = static_cast<std::int32_t>(core->mem_r32(FrameCut::kCameraBlendFields)) < 1;
   psx::cpu::callOriginalToReturn(
       *core, FrameCut::kCameraUpdate, psx::cpu::ExecutionBudget::currentTurn(*core), "camera update");
+  if (replaying(*core)) {
+    return;
+  }
   session(*core).frameCut.noteCameraUpdate(direct, (core->mem_r16(FrameCut::kCameraSource) & 1u) != 0u);
 }
 

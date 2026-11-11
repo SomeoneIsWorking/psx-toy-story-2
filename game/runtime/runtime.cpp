@@ -54,8 +54,10 @@ constexpr psx::cd::StockCommandWorkArea kLibcdWorkArea{
 };
 constexpr std::uint32_t kCdReadyCallback = 0x800A0808u;
 
-// libgpu's DMA timeout pair derives its deadline from VSync(-1).
+// libgpu's DMA timeout pair derives its deadline from VSync(-1). DrawSync 0x80085A54 (GPU_SYS +0x3C 0x80088238) waits
+// for the queue 0x80087B10 and DMA2, and DMA2 completes at once, so the queue drains as it fills and nothing waits.
 constexpr psx::hle::StockLibgpu::Entries kLibgpu{
+    .drawSync = facts::kDrawSync,
     .timeoutArm = 0x80088380u,
     .timeoutCheck = 0x800883B4u,
     .timeoutDeadlineWord = 0x8009EC20u,
@@ -123,6 +125,10 @@ bool Runtime::sealedFrameIsCut(Core &core) const {
 psx::present::ReplayFrame *Runtime::replayFrame(Core &core) {
   auto *driver = core.game->frameDriverIf<FrameDriver>();
   return driver != nullptr ? &driver->drawReplay().frame() : nullptr;
+}
+
+psx::state::NativeStatePort *Runtime::nativeState(Core &core) const {
+  return &session(core).titleState;
 }
 
 const psx::present::GuestWidescreenProjection *Runtime::guestWidescreenProjection() const {

@@ -11,7 +11,8 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 |---|---|---|
 | `createCatalog` | `game/entry/catalog.*` | The one-title catalog: `SLUS_008.93` identity, `PSXPORT_TS2_DISC`, provisioning under `scratch/bin`, one `ts2::Runtime` |
 | `ts2::Runtime` | `game/runtime/runtime.*` | The `GameRuntime`: crt0 (`Crt0Boot`), stock libgte/VSync/libgpu/DMA-callback/libcd/pad objects bound in `registerOverrides`, the title overrides, session, frame driver, packet pool, cut, widescreen policy, input phase, host identity |
-| `ts2::Session`, `session` | `game/runtime/session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations |
+| `ts2::Session`, `session` | `game/runtime/session.*` | Per-Core title state: boot owners, overlays, sound banks, pad, movie player, frame cut, actor incarnations, save-state section |
+| `ts2::TitleState` | `game/runtime/title_state.*` | The machine save state's `ts2` section: holds nothing; a restore makes the replay forget its samples |
 | `GuestMainBoot` | `game/boot/guest_main_boot.*` | The measured prefix of guest main `0x8007A9E8`, then overlay initialization, stopping before the outer loop |
 | `GraphicsSync`, `publishFieldBarrier` | `game/boot/graphics_sync.*` | Graphics init, resident init, shutdown and field barrier (`0x8003A218`, `0x80039D9C`, `0x8003A838`, `0x8003FA68`) with no guest-owned VSync |
 | `LevelStartPresentation` | `game/boot/level_start_presentation.*` | The `0x8007C278` override per level start; suppresses only the demo-forced LOADING card |
@@ -22,7 +23,7 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 | `stepOuterLoop`, `OuterLoopState` | `game/frame/outer_loop.*` | One finite outer-loop operation per call: front-end poll field, selection, resident update, transition field; a taken warp replaces the post-level route |
 | `ResidentPreparation` | `game/frame/resident_preparation.*` | Level start `0x8007BEC4` and the play-loop entry as two resumable calls |
 | `FieldCall` | `game/frame/field_call.*` | A guest call driven across display fields over `psx::cpu::ResumableGuestCall` |
-| `DrawReplay` | `game/frame/draw_replay.*` | The 60 fps in-betweens (`docs/plans/replay-interpolation.md`): samples at the draw-mode packet `0x80046A88` of a resident update, owns the `ReplayFrame`; in a replay DrawSync returns 0 and the profiler mark `0x8003E938` does nothing |
+| `DrawReplay` | `game/frame/draw_replay.*` | The 60 fps in-betweens (`docs/plans/replay-interpolation.md`): samples at the draw-mode packet `0x80046A88` of a resident update, owns the `ReplayFrame`; `replaying` gates the host notes of overrides a replay could reach |
 | `DrawSection` | `game/frame/draw_section.*` | The replayed section: `0x80046A88`, the world pass `0x8002A070` (and the orbit update's pause menu), then the display's links before DrawOTag |
 | `DrawMotion`, `ActorMotion`, `PartMotion` | `game/frame/draw_motion.*` | The section's motion tracks: scratchpad camera, published angles, player, actor pool, part records the update posed |
 | `FrameCut` | `game/frame/frame_cut.*` | Whether a sealed record is a cut: level or area change, camera placed afresh (`0x80065CD0`), camera source switch (`0x80068E2C`) |

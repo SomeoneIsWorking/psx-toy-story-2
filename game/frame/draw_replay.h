@@ -10,11 +10,14 @@ class Core;
 
 namespace ts2 {
 
+// Whether the draw section is being replayed: its stores are put back, so an override's host notes must not follow.
+[[nodiscard]] bool replaying(Core &core);
+
 class DrawReplay {
 public:
   explicit DrawReplay(Core &core);
 
-  // The overrides of the section's first step and of the profiler mark the section calls.
+  // The override of the section's first step.
   static void install(Core &core);
 
   // The resident update 0x8007B254, or the orbit 0x8007B850 when `orbit`, is about to run; a switch between them
@@ -24,7 +27,7 @@ public:
   void beforeDraw(Core &core);
   // The logic frame ended; one that did not draw the section breaks the pairing.
   void endFrame();
-  // The next draw pairs with nothing (a savestate restore).
+  // The next draw pairs with nothing: guest state was replaced (a savestate restore).
   void forget();
 
   [[nodiscard]] psx::present::ReplayFrame &frame() {

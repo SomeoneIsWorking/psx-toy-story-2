@@ -11,6 +11,7 @@
 #include "input/pad_owner.h"
 #include "overlay/overlay_images.h"
 #include "render/actor_incarnation.h"
+#include "runtime/title_state.h"
 
 class Core;
 
@@ -29,6 +30,7 @@ public:
   MemoryScreen memoryScreen;
   FrameCut frameCut;
   ActorIncarnations actorIncarnations;
+  TitleState titleState;
   // True while a guest call suspended between display fields (the front-end poll) runs; its field
   // barrier then exits the executor at the field boundary so the host can present.
   bool yieldAtFieldBarrier = false;

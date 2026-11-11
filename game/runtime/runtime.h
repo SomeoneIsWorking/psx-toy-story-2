@@ -31,6 +31,7 @@ public:
   }
   bool sealedFrameIsCut(Core &core) const override;
   psx::present::ReplayFrame *replayFrame(Core &core) override;
+  psx::state::NativeStatePort *nativeState(Core &core) const override;
   const psx::present::GuestWidescreenProjection *guestWidescreenProjection() const override;
   // The title screen discards Start inside its 30-field lockout, so absolute pad frames would miss it.
   std::uint64_t inputPhase(Core &core) const override {

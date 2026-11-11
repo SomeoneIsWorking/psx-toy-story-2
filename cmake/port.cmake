@@ -48,6 +48,7 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/render/tri_split.cpp
   game/render/tri_split_attributes.cpp
   game/runtime/session.cpp
+  game/runtime/title_state.cpp
   game/runtime/runtime.cpp
   game/widescreen/guest_widescreen.cpp
   game/widescreen/resident_widescreen.cpp
