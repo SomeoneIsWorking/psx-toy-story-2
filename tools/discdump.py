@@ -3,12 +3,12 @@
 
 Every disc read goes through psxport's discdump (external/psxport/tools/discdump.cpp). The framework
 checkout is $PSXPORT_DIR (default: the sibling checkout); $PSXPORT_DISCDUMP overrides with a prebuilt
-binary. Builds land in this repo's gitignored build/tools/, keyed by checkout. No file list is cached.
+binary. psxport's launcher builds it into this repo's build/player-tools/. No file list is cached.
 """
-import hashlib
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,7 +20,7 @@ def psxport_dir():
     return d
 
 
-def find(build_if_missing=True):
+def find():
     """Return an absolute path to a usable `discdump`, or raise SystemExit(2) saying why not."""
     override = os.environ.get("PSXPORT_DISCDUMP")
     if override:
@@ -30,51 +30,17 @@ def find(build_if_missing=True):
         return os.path.abspath(override)
 
     px = psxport_dir()
-    if not os.path.isfile(os.path.join(px, "cmake", "psxport.cmake")):
-        print(
-            f"[discdump] PSXPORT_DIR={px} is not a psxport checkout — run "
-            "`git submodule update --init external/psxport`, or set PSXPORT_DIR.",
-            file=sys.stderr,
-        )
+    if not os.path.isfile(os.path.join(px, "tools", "port", "launcher.py")):
+        print(f"[discdump] PSXPORT_DIR={px} is not a psxport checkout; set PSXPORT_DIR.", file=sys.stderr)
         raise SystemExit(2)
-
-    # A built binary wins over building; the build dir is keyed by the checkout so a dev PSXPORT_DIR
-    # never reuses another checkout's binary, and nothing is written into external/psxport.
-    build_dir = os.path.join(ROOT, "build", "tools",
-                             "discdump-" + hashlib.sha1(os.path.realpath(px).encode()).hexdigest()[:12])
-    searched = []
-    for base in (build_dir, os.path.join(px, "build")):
-        for name in ("discdump", "discdump.exe"):
-            cand = os.path.join(base, "tools", name)
-            searched.append(cand)
-            if os.access(cand, os.X_OK):
-                return cand
-    if not build_if_missing:
-        print("[discdump] no usable binary. Looked at: $PSXPORT_DISCDUMP (unset), "
-              + ", ".join(searched), file=sys.stderr)
-        raise SystemExit(2)
-
-    print(f"[discdump] building it from {px} into {build_dir} (first run only)…", file=sys.stderr)
-    jobs = str(os.cpu_count() or 4)
-    for cmd in (
-        ["cmake", "-S", px, "-B", build_dir, "-DCMAKE_BUILD_TYPE=Release"],
-        ["cmake", "--build", build_dir, "-j", jobs, "--target", "discdump"],
-    ):
-        r = subprocess.run(cmd, stdout=subprocess.DEVNULL)
-        if r.returncode != 0:
-            print(f"[discdump] FAILED: {' '.join(cmd)}\n"
-                  f"[discdump] the framework checkout is PSXPORT_DIR={px}"
-                  + ("" if os.environ.get("PSXPORT_DIR") else " (unset, defaulted to the submodule)")
-                  + ".\n"
-                  "[discdump] the usual cause is psxport's OWN submodules being unpopulated — "
-                  "initialising external/psxport does NOT reach them, `--recursive` aborts on "
-                  "beetle-psx's url-less deps/lightning/gnulib, and sync-submodules.sh certifies "
-                  "pins it never checked. Fix it per path:\n"
-                  f"    git -C {px} submodule update --init vendor/lucent vendor/beetle-psx\n"
-                  "[discdump] or set PSXPORT_DIR at a working checkout, or $PSXPORT_DISCDUMP at a "
-                  "prebuilt binary.", file=sys.stderr)
-            raise SystemExit(2)
-    return find(build_if_missing=False)
+    sys.path.insert(0, os.path.join(px, "tools"))
+    from automation.process import ToolError
+    from port.launcher import build_discdump
+    try:
+        return str(build_discdump(Path(ROOT), os.environ))
+    except ToolError as error:
+        print(f"[discdump] {error}", file=sys.stderr)
+        raise SystemExit(2) from error
 
 
 def listing(disc, dd=None):
