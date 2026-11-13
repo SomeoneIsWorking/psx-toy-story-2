@@ -61,7 +61,8 @@ restore (`TitleState::restored`).
 ## Not tracked yet
 
 Particles and effect pools of the world pass (`0x80044C18`, `0x80046E50`, `0x80048214`), moving world objects of
-`0x8002622C`, the light matrices `0x800A8360..` and texture scroll step at the logic rate.
+`0x8002622C` (the section rebuilds a spinner's group matrix from its unblended angles each replay; the store inside the
+section is not found yet, so the track's input, angles or matrix, is undecided), the light matrices `0x800A8360..` and texture scroll step at the logic rate.
 
 ## Proof (2026-11-11)
 
@@ -81,8 +82,10 @@ Hidden window, ires 0, fps60, sink 3840x2160, unpaced (`scratch/replay/drive.py`
   I_MASK, pad, ticks) appears identically in the on run, which ends on the same tick.
 - Paced (2026-11-13, `scratch/replay/paced1.log`, host shared with other agents): 8940 present intervals, 14
   missed vsyncs (0.16%, longest run 3), cadence 0.50 tick per vblank on 4963 vblanks and 1.00 on 1311; the run-end
-  cadence does not split the one-field front-end screens from the refused intervals, so a gameplay-only figure needs
-  a run that starts its count in Andy's House. Not yet on a quiet host.
+  1.00 vblanks are all one-field screens (MEMORY, level-start fades, level card, the level start's wait for Cross)
+  and every gameplay present advances half a tick (`scratch/replay/h1.log`). Not yet on a quiet host.
+- HEAD crops (2026-11-13, `scratch/replay/h1/buzz.png`, `cam.png`): the chair leg in the in-betweens within 3 px
+  of its neighbours' midpoint (8 px a native pixel), Buzz's run cycle between its neighbours.
 
 The native mesh bodies stay (`MeshSubmitters`): with the guest's own split paths the floor pieces past column
 512 drop out of the widescreen margins (issue 42).
