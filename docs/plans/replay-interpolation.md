@@ -79,7 +79,10 @@ Hidden window, ires 0, fps60, sink 3840x2160, unpaced (`scratch/replay/drive.py`
 - Leak proof (`leak0`/`leak1`, `PSXPORT_DEBUG=fielddigest`, the same inputs with fps60 off and on, 1246 intervals
   replayed and 57 refused on the on side): every one of the off run's 5080 field digests (RAM hash, I_STAT,
   I_MASK, pad, ticks) appears identically in the on run, which ends on the same tick.
-- Not yet: a paced real-time run on a quiet host.
+- Paced (2026-11-13, `scratch/replay/paced1.log`, host shared with other agents): 8940 present intervals, 14
+  missed vsyncs (0.16%, longest run 3), cadence 0.50 tick per vblank on 4963 vblanks and 1.00 on 1311; the run-end
+  cadence does not split the one-field front-end screens from the refused intervals, so a gameplay-only figure needs
+  a run that starts its count in Andy's House. Not yet on a quiet host.
 
 The native mesh bodies stay (`MeshSubmitters`): with the guest's own split paths the floor pieces past column
 512 drop out of the widescreen margins (issue 42).
