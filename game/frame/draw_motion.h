@@ -1,7 +1,8 @@
 // draw_motion.h — the guest words the draw section reads that move between resident updates: the camera the
-// update's 0x8002C848 leaves in the scratchpad, the player and the pooled actors.
+// update's 0x8002C848 leaves in the scratchpad, the player, the pooled actors and the effect pass's spinners.
 #pragma once
 
+#include "frame/spinner_motion.h"
 #include "motion_set.h"
 
 #include <array>
@@ -85,17 +86,24 @@ public:
   [[nodiscard]] std::span<const psx::present::MotionTrack> tracks() const {
     return tracks_;
   }
+  [[nodiscard]] std::span<psx::present::MotionSource *const> sources() const {
+    return sources_;
+  }
 
 private:
-  static constexpr std::size_t kTracks = 6;
+  static constexpr std::size_t kTracks = 7;
 
   // RotMatrix of the camera's angles with its x row widened by 512/320 and its rows shaken (0x8002C848).
   psx::present::TransformRule camera_{psx::present::TransformRule::Rows::Scaled};
+  // The effect pass's sprite frame counter gp+0x898 runs 0..23; the halfword above it steps.
+  psx::present::RingRule spriteFrame_{{24, 0}};
   ActorMotion actor_;
   ActorLiveness actors_;
   PartMotion part_;
   PartLiveness parts_;
   std::array<psx::present::MotionTrack, kTracks> tracks_;
+  SpinnerMotion spinners_;
+  std::array<psx::present::MotionSource *, 1> sources_{&spinners_};
 };
 
 } // namespace ts2

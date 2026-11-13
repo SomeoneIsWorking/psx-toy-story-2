@@ -25,7 +25,8 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 | `FieldCall` | `game/frame/field_call.*` | A guest call driven across display fields over `psx::cpu::ResumableGuestCall` |
 | `DrawReplay` | `game/frame/draw_replay.*` | The 60 fps in-betweens (`docs/plans/replay-interpolation.md`): samples at the draw-mode packet `0x80046A88` of a resident update, owns the `ReplayFrame`; `replaying` gates the host notes of overrides a replay could reach |
 | `DrawSection` | `game/frame/draw_section.*` | The replayed section: `0x80046A88`, the world pass `0x8002A070` (and the orbit update's pause menu), then the display's links before DrawOTag |
-| `DrawMotion`, `ActorMotion`, `PartMotion` | `game/frame/draw_motion.*` | The section's motion tracks: scratchpad camera, published angles, player, actor pool, part records the update posed |
+| `DrawMotion`, `ActorMotion`, `PartMotion` | `game/frame/draw_motion.*` | The section's motion tracks: scratchpad camera, published angles, player, actor pool, part records the update posed, the effect pass's sprite frame counter |
+| `SpinnerMotion` | `game/frame/spinner_motion.*` | The instance angles of the world objects the effect pass `0x80044C18` turns in the draw |
 | `FrameCut` | `game/frame/frame_cut.*` | Whether a sealed record is a cut: level or area change, camera placed afresh (`0x80065CD0`), camera source switch (`0x80068E2C`) |
 | `GuestCall`, `callGuestToReturn`, `callFiniteGuestToReturn`, `GuestRegisters`, `guestString` | `game/execution/guest_execution.*` | Typed bounded guest calls, their slice caps, and the guest string reader |
 | guest facts | `game/facts/guest_facts.h` | Graphics buffers, OT and packet pool offsets, the VSync(-1) counter, the play loop's exit reason and countdown; evidence in `external/toystory2-decomp/docs/re-frontier.md` |

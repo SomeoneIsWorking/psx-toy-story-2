@@ -21,7 +21,7 @@ void drawMode(Core *core) {
 
 } // namespace
 
-DrawReplay::DrawReplay(Core &core) : motion_(core), frame_(section_, motion_.tracks()) {}
+DrawReplay::DrawReplay(Core &core) : motion_(core), frame_(section_, motion_.tracks(), motion_.sources()) {}
 
 bool replaying(Core &core) {
   const psx::present::ReplayFrame *replay = core.runtime.replayFrame(core);

@@ -23,6 +23,7 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/frame/outer_loop.cpp
   game/frame/resident_frame.cpp
   game/frame/resident_preparation.cpp
+  game/frame/spinner_motion.cpp
   game/fmv/movie_player.cpp
   game/front_end/memory_screen.cpp
   game/input/pad_owner.cpp

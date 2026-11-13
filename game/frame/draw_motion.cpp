@@ -37,6 +37,10 @@ constexpr std::uint32_t kCameraAngles = 0x800A1618u;
 constexpr std::array kCameraAngleFields{MotionField{.offset = 0x00, .motion = Motion::Angle12x2},
                                         MotionField{.offset = 0x04, .motion = Motion::Angle12Low}};
 
+// gp+0x898 (s16): the sprite frame counter 0x80044C18 steps by the fields elapsed; its sprites show frame >> 1.
+constexpr std::uint32_t kSpriteFrame = 0x800A1570u;
+constexpr std::array kSpriteFrameFields{MotionField{.offset = 0x00}};
+
 // ActorMotion's words, in its order.
 constexpr std::array kActorFields{
     MotionField{.offset = 0x00},
@@ -239,6 +243,7 @@ DrawMotion::DrawMotion(Core &core)
            .fields = kPartFields,
            .rule = &part_,
            .records = MotionRecords{.stride = kPartBytes, .count = kPartCount, .liveness = &parts_}},
+          {.name = "sprite frame", .address = kSpriteFrame, .fields = kSpriteFrameFields, .rule = &spriteFrame_},
       }} {}
 
 } // namespace ts2

@@ -37,9 +37,16 @@ Overrides whose guest call a replay could reach note nothing while `replaying` (
 | player | `0x800B2188`: position s32 `+0..+8`, angles s16 `+0x0C..+0x10`, animation `+0x12/+0x16`, frames `+0x18/+0x1C` | `ActorMotion` | model `+0x14` as key |
 | actors | 64 records of 0x98 at `0x800C2EA0`, same layout | `ActorMotion` | on the active list, in the life `ActorIncarnations` saw last sample; model key |
 | posed parts | part records 0x6C at `0x800A9618`: offset s32 `+0..+8`, rotation nine s16 at `+0x58` | `PartMotion` | parts of a model drawn once whose actor has no animation (the player: its update poses them), while the same actor in the same life poses them |
+| sprite frame | `gp+0x898` (`0x800A1570`), the effect pass's sprite frame counter 0..23 | ring of 24 | one record |
+| spinners (`SpinnerMotion`, `game/frame/spinner_motion.*`) | the angles `+0x0C..+0x10` of each instance an effect pool record names (byte `+0xC` from `0x30`) | 12-bit angles | the same instance at the same record index |
 
 The pose rule follows the frame words' semantics in `external/toystory2-decomp/docs/notes/frame-loop.md`: a frame word blends round its animation's frame
 count only while its animation index holds.
+
+The effect pass `0x80044C18` steps two inputs inside the section by `ElapsedFields`: the sprite frame counter and the
+spinners' angles, from which it rebuilds their group matrices. The replay starts from the later sample, so it
+blends what the step starts from and the pass adds its own step on top: the in-between lands between the two
+real draws. A sprite frame is discrete, so its in-between holds the earlier present's frame.
 
 The section reads the camera twice: the matrix (slerped) and the published angles (lerped, the sky and the screen
 effect). Both are exact at the ticks; a turn on two axes at once can put them slightly apart in the in-between.
@@ -60,9 +67,9 @@ restore (`TitleState::restored`).
 
 ## Not tracked yet
 
-Particles and effect pools of the world pass (`0x80044C18`, `0x80046E50`, `0x80048214`), moving world objects of
-`0x8002622C` (the section rebuilds a spinner's group matrix from its unblended angles each replay; the store inside the
-section is not found yet, so the track's input, angles or matrix, is undecided), the light matrices `0x800A8360..` and texture scroll step at the logic rate.
+The effect pool's sprite positions and the particle pools `0x80046E50`, `0x80048214`, world objects of `0x8002622C`
+that update code turns (`0x8002DFFC`, `0x8002E2A4`, `0x8002E52C`), the light matrices `0x800A8360..` and texture
+scroll step at the logic rate.
 
 ## Proof (2026-11-11)
 
@@ -86,6 +93,12 @@ Hidden window, ires 0, fps60, sink 3840x2160, unpaced (`scratch/replay/drive.py`
   and every gameplay present advances half a tick (`scratch/replay/h1.log`). Not yet on a quiet host.
 - HEAD crops (2026-11-13, `scratch/replay/h1/buzz.png`, `cam.png`): the chair leg in the in-betweens within 3 px
   of its neighbours' midpoint (8 px a native pixel), Buzz's run cycle between its neighbours.
+- Effect pass (2026-11-13, idle in Andy's House, `scratch/worldobj/spin1`, `spin3`): the coin sprite above the chair
+  showed the next tick's frame in each in-between (widths 10,10,25,25,32,32 px with in-betweens at p0, p2, p4);
+  with the sprite frame track each in-between holds the frame before it (7,10,10,25,25,32,32), so the coin turns
+  at the guest's 30 Hz. The spinner's angle word steps 20/40 a frame with fps60 off and on alike (no leak), and its
+  32674 draws pair; the one spinner in Andy's House (`0x8014FA24`) is out of view at the level start, so its turn
+  is not yet seen in frames.
 
 The native mesh bodies stay (`MeshSubmitters`): with the guest's own split paths the floor pieces past column
 512 drop out of the widescreen margins (issue 42).
