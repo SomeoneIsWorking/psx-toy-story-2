@@ -28,7 +28,7 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 | `DrawMotion`, `ActorMotion`, `PartMotion` | `game/frame/draw_motion.*` | The section's motion tracks: scratchpad camera, published angles, player, actor pool, part records the update posed |
 | `FrameCut` | `game/frame/frame_cut.*` | Whether a sealed record is a cut: level or area change, camera placed afresh (`0x80065CD0`), camera source switch (`0x80068E2C`) |
 | `GuestCall`, `callGuestToReturn`, `callFiniteGuestToReturn`, `GuestRegisters`, `guestString` | `game/execution/guest_execution.*` | Typed bounded guest calls, their slice caps, and the guest string reader |
-| guest facts | `game/facts/guest_facts.h` | Graphics buffers, OT and packet pool offsets, the VSync(-1) counter, the play loop's exit reason and countdown; evidence in `docs/re-frontier.md` |
+| guest facts | `game/facts/guest_facts.h` | Graphics buffers, OT and packet pool offsets, the VSync(-1) counter, the play loop's exit reason and countdown; evidence in `external/toystory2-decomp/docs/re-frontier.md` |
 | `PadOwner` | `game/input/pad_owner.*` | The guest's pad decode `0x8003AC58`, pad init and shutdown; the slot buffers `0x800CF8A0`/`0x800CF8C8` |
 | `InputPhase` | `game/input/recording_phase.*` | The replay key from four guest words that hold still per screen |
 | `FileTransfer` | `game/cd/file_transfer.*` | The whole-file read `0x80082608` from the authenticated disc, and its caller's bounded retry |
@@ -61,5 +61,6 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 - A stock library body → a psxport stock class bound in `ts2::Runtime`, never a title copy.
 - Per-Core title state → `ts2::Session`.
 - A native drawer body → `game/render/`, installed as a plain override; interpolation stays the draw section replay.
-- A measured guest address → beside the owner that reads it, evidence in `docs/re-frontier.md`.
+- A measured guest address → the decomp's symbol map (`external/toystory2-decomp/config/symbols/`) first, evidence in
+  its `docs/re-frontier.md`; the owner that reads it holds the constant until plan 0062 generates it.
 - Anything every title shares → psxport, not here.

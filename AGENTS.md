@@ -17,19 +17,9 @@ Native overrides are registered only after the resident image is authenticated a
 ## Title facts
 
 - The supported executable is 598,016 bytes; identity is in `docs/info/exe-identity.txt`.
-- The executable plus 22 loaded code modules form the code corpus. The four-byte LEVEL00
-  placeholder is not code.
-- LEVEL alternatives reuse `0x800D12C0`; MEMORY and FMV reuse `0x800D5D20`; FMV enters at
-  `0x800D6628`. Overlay identity is image generation plus guest address.
-- The first resident call boundary is `0x80089344`; IRQ resume `0x80088A2C` is a mid-function
-  re-entry, not a function start.
-- Model-table reset `0x80041F38` includes the delay-slot increment at `0x80041FFC`.
-- Retail pad buffers are `0x800CF8A0` and `0x800CF8C8`; active-low Cross is `0xBF` and release is
-  `0xFF` in the measured packet byte.
-- Authored projection leaves are `0x80083CD4` and `0x80083CF4`, initialized to `256/120/160`.
+- Overlay identity is image generation plus guest address; the images, slots and guest facts are in
+  `external/toystory2-decomp/docs/overlays.md` and `docs/notes/title-facts.md` there.
 - The finite frame owner never dispatches guest VSync `0x80088628`.
-- `.RAW` payloads use Traveller's Tales' `DecompressRAW` LZ format (not RNC); a 14-byte chunk header
-  keeps both CRCs, and it decodes the whole retail corpus to exact lengths.
 
 ## Migration gates
 
@@ -44,7 +34,10 @@ polling/service boundary or inflate its cycle budget to make boot progress.
 
 ## RE
 
-There is no decompilation of this game; every address comes from Ghidra on the exact executable.
+RE lives in [`external/toystory2-decomp`](external/toystory2-decomp) (ours, MIT): the splat configs, the symbol map
+`config/symbols/<image>.txt`, `docs/re-frontier.md`, behaviour notes and prior art. A new finding is committed there
+first and the submodule bumped in the port change that uses it; a new address goes into the symbol map
+(`docs/plans/0062-addresses-from-the-decomp-symbol-map.md`). Every address comes from Ghidra on the exact executable.
 `tools/ram_image.py` builds the RAM image, `tools/ghidra_xref.py` and `tools/re_xref.py` xref a guest
 address.
 

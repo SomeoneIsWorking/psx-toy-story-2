@@ -1,8 +1,8 @@
 # Project state
 
 Epic intent lives in `docs/project-goals.md`, ownership in `docs/codemap.md`, open bugs in
-`docs/issues/`, feature hops in `docs/features.md`, and which reverse-engineering steps are ground-truth-ready in
-`docs/re-frontier.md`.
+`docs/issues/`, feature hops in `docs/features.md`, and RE (symbol map, the ground-truth chain `docs/re-frontier.md`, behaviour notes, prior art) in the decomp
+repository `external/toystory2-decomp`.
 
 **Comparison baseline**: the unmodified USA PlayStation release `SLUS_008.93` in a general-purpose
 emulator. Intended deltas: a standalone native/dynarec product, host-owned finite frame iteration,

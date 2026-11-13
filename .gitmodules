@@ -1,0 +1,3 @@
+[submodule "external/toystory2-decomp"]
+	path = external/toystory2-decomp
+	url = https://github.com/SomeoneIsWorking/toystory2-decomp.git

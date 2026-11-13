@@ -11,33 +11,18 @@ the native part and hierarchy bodies are deleted; the native mesh bodies stay fo
 (draws the OT the previous update built), `present` (seals that record), then the resident update and the SPU.
 The resident loop runs at two fields a logic frame, so each interval has one in-between at t = 0.5.
 
-`0x8003A888`, in order: profiler mark, `0x8003DEC4(buffer)` (screen bars into the OT, the env's clear colour),
-`0x8003E498` (a VRAM copy, effect modes 1) or `0x8003EFD4` (mode 2, OT links), `0x8002DC2C` (the colour tint into
-the OT), DrawOTag of the buffer's OT head (`+0x2B4 + 0x57B * 4`, ClearOTagR), the pad decode `0x8003B33C`, the
-buffer swap and ClearOTagR of the next buffer.
+The deferred display `0x8003A888`, the resident update and the world pass are described in `external/toystory2-decomp/docs/notes/frame-loop.md`.
 
 ## The resident update and its draw section
 
-`0x8007B254` (the play loop; `0x8007B850` when `0x800A10F4` is set, the orbit camera) ends with:
-
-| step | what it does |
-|---|---|
-| `0x80078780` | logic: palette-cycle counters, timers, exit fade countdown, the fade step `0x800775CC` |
-| `0x80074F80` | HUD and pause menu: logic (state machine, sound starts `0x80072C7C`) and HUD packets into the OT |
-| `0x8007863C` | builds the draw list `0x800A4298` from the active list `0x800B18A8` plus the player `0x800B2188` |
-| `0x80046A88` | the draw-mode packet: **the section starts here** |
-| `0x8002A070` | the world pass: camera into the GTE, sky sprites `0x8001FB64`, visibility lists `0x80027724`, world objects `0x8002622C`, actors `0x80025E44` (sorts the draw list, then `0x8002518C` per actor), effects, the VRAM probe `0x80040160`, profiler marks `0x8003E938`, DrawSync `0x80085A54` |
-
-The section (`game/frame/draw_section.*`) is `0x80046A88` (its original; the override samples), `0x8002A070`,
+The section (`game/frame/draw_section.*`) starts after the update's logic, HUD and draw-list build. It is `0x80046A88` (its original; the override samples), `0x8002A070`,
 for the orbit update `0x800742C4`, then the display's steps before DrawOTag as `0x8003A888` takes them:
 `0x8003DEC4(buffer)`, the effect (`gp+0x588 + gp+0x610 != 0`: the VRAM copy `0x8003E498(buffer)` when either mode
 is 1, which refuses, else `0x8003EFD4` for mode 2) and `0x8002DC2C`. The effects and the tint take no arguments. It returns the OT head of `facts::kDrawBuffer`; `linked` names that head of either buffer, so
 PutDrawEnv's chain stays the record's own. The section links into a table the display cleared, so every replay
 rebuilds it; logic linked before the section (HUD from `0x80074F80`) is in the capture as drawn.
 
-Besides drawing, the world pass sorts the draw list in place, poses animated actors (`0x800426E0` writes the part
-table `0x800A9618`), steps the OT write cursor `0x800A151C`, consumes a streaming list (`+0x18` of the nearest
-area), and calls DrawSync and GetRCnt. The sandbox rolls the writes back. DrawSync `0x80085A54` is libgpu's stock
+The world pass's writes besides drawing (`external/toystory2-decomp/docs/notes/frame-loop.md`) are rolled back by the sandbox. DrawSync `0x80085A54` is libgpu's stock
 wait for both paths (`StockLibgpu`: DMA2 completes at once, so the queue `0x80087B10` drains as it fills); the
 profiler mark `0x8003E938` reads root counter 1, which a sandbox holding guest time serves as its held value.
 Overrides whose guest call a replay could reach note nothing while `replaying` (`ActorIncarnations`, `FrameCut`).
@@ -53,9 +38,8 @@ Overrides whose guest call a replay could reach note nothing while `replaying` (
 | actors | 64 records of 0x98 at `0x800C2EA0`, same layout | `ActorMotion` | on the active list, in the life `ActorIncarnations` saw last sample; model key |
 | posed parts | part records 0x6C at `0x800A9618`: offset s32 `+0..+8`, rotation nine s16 at `+0x58` | `PartMotion` | parts of a model drawn once whose actor has no animation (the player: its update poses them), while the same actor in the same life poses them |
 
-A frame word is 16.16: `0x800426E0` poses between frame `>> 16` and the next by the low half, the last frame
-towards frame 0, so it turns round the animation's frame count (`+4 & 0x7FFF` of the animation header, model
-table `0x800C7268`). It blends only while its animation index holds.
+The pose rule follows the frame words' semantics in `external/toystory2-decomp/docs/notes/frame-loop.md`: a frame word blends round its animation's frame
+count only while its animation index holds.
 
 The section reads the camera twice: the matrix (slerped) and the published angles (lerped, the sky and the screen
 effect). Both are exact at the ticks; a turn on two axes at once can put them slightly apart in the in-between.
