@@ -72,7 +72,4 @@ if(PSXPORT_BUILD_PORT)
   if(TARGET gen_gpu_shaders)
     add_dependencies(toystory2_port gen_gpu_shaders)
   endif()
-  set_target_properties(toystory2_port PROPERTIES
-    ENABLE_EXPORTS ON
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 endif()
