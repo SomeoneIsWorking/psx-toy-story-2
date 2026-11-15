@@ -6,7 +6,7 @@ symptom: Black or dark wedges where floor or wall should continue at the far lef
 tags: widescreen,render
 state_items: S010
 created: 2026-10-07
-updated: 2026-10-29
+updated: 2026-11-15
 ---
 
 Seen from boot in every attract level at 16:9 (`scratch/readme-media/survey2.jpg`): the guest's `rgb(33,33,33)`
@@ -36,3 +36,10 @@ The guest's near-camera split paths test retail columns: `sltiu ...,0x200` on th
 `0x8001B280`). `MeshSubmitters` keeps the native mesh bodies for this alone: `SplitEngine` tests the widened
 columns, and with the guest bodies the floor pieces past column 512 are dropped (Construction Yard, 2026-11-11).
 Calls the native plan refuses still run the guest's retail split.
+
+## Re-measured 2026-11-15 (HEAD 3ef77b6)
+Idle boot at 16:9 (`tools/headless_run.py --aspect 16x9 --frames 12000 --shot-at 5500,6250`), share of each 86-column
+margin in the backdrop colour: present 5500 (the Construction Yard demo) left 0%, right 1.78%; present 6250 left
+0.07%, right 0.11%. The right-margin patch at 5500 (x 853..925, y 91..229 of 960) continues a backdrop region of the
+same size inside the 4:3 centre, the scene's own background, not a cull. Al's Toy Barn and the kitchen are not
+re-measured; the guest tests listed above still run.
