@@ -1,8 +1,8 @@
-# Toy Story 2 native/dynarec port
+# Toy Story 2 native/interpreter port
 
 This repository targets the USA PlayStation release of *Toy Story 2: Buzz Lightyear to the Rescue!*
-(`SLUS_008.93`). It combines title-owned native subsystems with psxport's runtime Lightrec executor;
-the authenticated user-supplied game image remains data.
+(`SLUS_008.93`). It combines title-owned native subsystems with psxport's per-`Core` interpreter
+(`GuestExecutor`); the authenticated user-supplied game image remains data.
 
 ## Screenshots
 
@@ -21,10 +21,10 @@ Widescreen and 60 fps media are held back until their open defects are fixed: ga
 The durable feature inventory and exact gaps are in [project-state](docs/project-state.md), and the
 open product bugs are in [docs/issues](docs/issues).
 
-The Linux x86-64 product links against psxport's maintained Lightrec executor and runs the title,
-menu, level select, LEVEL01 and Andy's Room through it. Native boundary tests pass; native scene
-producers and true widescreen for the front end remain open. No offline guest source or
-player-selectable interpreter path is present.
+The Linux x86-64 product runs its guest code on psxport's per-`Core` interpreter. On the recompiler the
+interpreter replaced, it ran the title, menu, level select, LEVEL01 and Andy's Room. Native boundary
+tests pass; native scene producers and true widescreen for the front end remain open. No offline guest
+source or engine selector is present.
 
 ## Build and run
 
@@ -44,8 +44,6 @@ There are no unit tests or gates. Build with Clang:
 ```sh
 CXX=clang++ CC=clang uv run --frozen python external/psxport/tools/port/consumer_build.py --build build/agent --target toystory2_port
 ```
-
-Maintained dependency overrides use `PSXPORT_LIGHTREC_DIR` and `PSXPORT_LIGHTNING_PREFIX`.
 
 To look at the game, drive it, or capture frames, use the maintainer tool: `tools/headless_run.py`
 (one bounded headless run of `--frames` presentation-fence steps, with `--tap` for an exact-frame schedule, `--pad` to replay a recorded

@@ -1,6 +1,6 @@
 # Toy Story 2 port
 
-Ports the USA PlayStation release `SLUS_008.93` as a native/Lightrec hybrid over the shared
+Ports the USA PlayStation release `SLUS_008.93` as a native/interpreter hybrid over the shared
 `external/psxport` framework. Execution policy: the `dynarec-port`, `dynarec-runtime` and
 `dynarec-overrides` skills. When this repository is inside the PSX workspace, also read
 [`../AGENTS.md`](../AGENTS.md) and [`external/psxport/AGENTS.md`](external/psxport/AGENTS.md).
@@ -23,7 +23,7 @@ Native overrides are registered only after the resident image is authenticated a
 
 ## Migration gates
 
-The first runtime discriminator consumes exact `SLUS_008.93`, executes nonzero Lightrec blocks,
+The first runtime discriminator consumes exact `SLUS_008.93`, executes nonzero guest blocks (executor ledger),
 reaches resident and streamed-module code, exercises image-generation invalidation and agrees with an
 independent oracle at a bounded checkpoint. Boot, FMV or one captured frame is insufficient.
 Representative gameplay then covers player input, pause/unpause, camera movement, module
