@@ -58,11 +58,15 @@ effect). Both are exact at the ticks; a turn on two axes at once can put them sl
 between the two updates, breaks the pairing (`DrawReplay::endFrame`, `beginUpdate`), and so does a save-state
 restore (`TitleState::restored`).
 
+## The glow probe
+
+`0x80040160` (`GlowProbe`, `game/render/glow_probe.*`) reads the eight-pixel strip its lights' probes drew back through
+libgpu's StoreImage, which waits on the device and so refuses in a replay. The native body runs the guest's steps; in
+a replay it reads the strip straight from VRAM, which nothing draws to between the replay and the real run's read,
+and leaves the LoadImage write-back to the real run (issue 0061).
+
 ## Not replayed
 
-- `0x80040160` reads eight VRAM pixels back (StoreImage at `0x3C0,0x7F/0x7D`) and writes them again while
-  `0x800A1568` is set for the buffer: those intervals refuse at the first GPUSTAT poll and show S as drawn
-  (issue 0061).
 - Front end, level start, selection and MEMORY screens run at one field a frame and have no in-betweens.
 
 ## Not tracked yet

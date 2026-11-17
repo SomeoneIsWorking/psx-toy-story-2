@@ -11,6 +11,7 @@
 #include "input/pad_owner.h"
 #include "overlay/overlay_images.h"
 #include "render/actor_incarnation.h"
+#include "render/glow_probe.h"
 #include "render/mesh_submitters.h"
 #include "render/ordering_tables.h"
 #include "runtime/session.h"
@@ -96,6 +97,7 @@ void Runtime::registerOverrides(Game &game) {
   title.pad.install(game.core);
   OrderingTables::name(game.core);
   MeshSubmitters::install(game.core);
+  GlowProbe::install(game.core);
   ActorIncarnations::install(game.core);
   FrameCut::install(game.core);
   DrawReplay::install(game.core);

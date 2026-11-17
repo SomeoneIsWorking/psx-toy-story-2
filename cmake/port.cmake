@@ -31,6 +31,7 @@ set(TOYSTORY2_RUNTIME_SOURCES
   game/overlay/overlay_images.cpp
   game/overlay/overlay_slot.cpp
   game/render/actor_incarnation.cpp
+  game/render/glow_probe.cpp
   game/render/memory_range.cpp
   game/render/mesh_culling.cpp
   game/render/mesh_drawers.cpp

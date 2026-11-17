@@ -6,7 +6,7 @@ symptom: Black or dark wedges where floor or wall should continue at the far lef
 tags: widescreen,render
 state_items: S010
 created: 2026-10-07
-updated: 2026-11-15
+updated: 2026-11-17
 ---
 
 Seen from boot in every attract level at 16:9 (`scratch/readme-media/survey2.jpg`): the guest's `rgb(33,33,33)`
@@ -43,3 +43,8 @@ margin in the backdrop colour: present 5500 (the Construction Yard demo) left 0%
 0.07%, right 0.11%. The right-margin patch at 5500 (x 853..925, y 91..229 of 960) continues a backdrop region of the
 same size inside the 4:3 centre, the scene's own background, not a cull. Al's Toy Barn and the kitchen are not
 re-measured; the guest tests listed above still run.
+
+## Level index 14 (2026-11-17)
+A `warp` survey of ten more levels at 16:9 (`scratch/fpv/survey_a.png`, `survey_b.png`) fills the margins on all but
+level index 14 (id `0xF`): black wedges at the floor in both margins, the right one from about column 534
+(`scratch/fpv/s14_big.png`). Which guest test drops them is not traced.

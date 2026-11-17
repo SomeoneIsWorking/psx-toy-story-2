@@ -42,6 +42,7 @@ Frame loop: owned. `stepResidentFrame` runs the resident loop `0x8007A9E8`'s upd
 | `ResidentWidescreenCull` | `game/widescreen/resident_widescreen.*` | Widened visibility window `0x80027AF0` and screen rectangle `0x80010000` |
 | `OrderingTables` | `game/render/ordering_tables.*` | Names both OTs so entries carry their bucket |
 | `MeshSubmitters` | `game/render/mesh_submitters.*` | Overrides `0x800100E4` and `0x80017FF8`: the native body when it covers the call, else the guest original |
+| `GlowProbe` | `game/render/glow_probe.*` | `0x80040160`: the world pass's light probe readback and glows; a replay reads the strip from VRAM |
 | `MeshDrawers` | `game/render/mesh_drawers.*` | The one entry to the ported mesh bodies: plan, run |
 | `StaticMeshDrawer` | `game/render/static_mesh_drawer.*`, `static_mesh_plan.cpp`, `static_mesh_layout.h` | `0x800100E4`, positive-header meshes |
 | `RigidMeshDrawer` | `game/render/rigid_mesh_drawer.*` | `0x80017FF8` |
